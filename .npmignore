@@ -1,0 +1,9 @@
+src
+specs
+tsconfig.json
+.gitignore
+.npmignore
+.github
+*.test.ts
+coverage
+.vitest

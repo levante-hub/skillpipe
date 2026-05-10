@@ -1,0 +1,62 @@
+{
+  "name": "skillpipe",
+  "version": "0.1.0",
+  "description": "Git-native CLI for syncing AI agent skills across environments.",
+  "type": "module",
+  "bin": {
+    "skillsync": "dist/cli.js"
+  },
+  "main": "dist/cli.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "skills",
+    "claude",
+    "claude-code",
+    "cli",
+    "sync",
+    "github"
+  ],
+  "author": "Saúl Gómez Jiménez",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "execa": "^9.3.0",
+    "fast-glob": "^3.3.2",
+    "fs-extra": "^11.2.0",
+    "gray-matter": "^4.0.3",
+    "inquirer": "^9.3.0",
+    "js-yaml": "^4.1.0",
+    "ora": "^8.0.1",
+    "simple-git": "^3.25.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.7",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.14.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0",
+    "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist",
+    "skills",
+    "README.md",
+    "LICENSE"
+  ]
+}
