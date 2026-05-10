@@ -1,6 +1,6 @@
 # Security model
 
-SkillSync skills are **instructions executed by AI inference**. A skill that
+Skillpipe skills are **instructions executed by AI inference**. A skill that
 contains a leaked API key or a destructive instruction is a real risk, not a
 hypothetical one. The security model reflects that.
 
@@ -21,11 +21,11 @@ Every skill is validated before it lands in the target install path:
   `chmod 777`, etc.).
 
 Validation runs on `install`, on `update`, and on `propose`. You can also run
-it on demand with `skillsync validate`.
+it on demand with `skillpipe validate`.
 
 ### 2. PR-only contribution flow
 
-Day-to-day skill changes go through `skillsync propose` — which validates,
+Day-to-day skill changes go through `skillpipe propose` — which validates,
 creates a branch, commits, pushes, and opens a Pull Request via `gh`.
 
 **Direct push to `main` is a hard rule violation.** It bypasses validation and
@@ -42,30 +42,30 @@ Skills are copied (not symlinked) into the target by default. This means:
 - The version of a skill an agent reads is *the version that was installed*,
   not whatever happens to be in the source repo right now.
 - A bad commit upstream doesn't immediately propagate to running agents.
-- `skillsync status` and `skillsync update --dry-run` show you exactly what
+- `skillpipe status` and `skillpipe update --dry-run` show you exactly what
   *would* change before you accept it.
 
 ## Hard rules
 
-These rules are baked into the CLI and the bundled `skillsync-cli` skill:
+These rules are baked into the CLI and the bundled `skillpipe-cli` skill:
 
-1. **Never edit `~/.skillsync/config.json` or `~/.skillsync/lock.json` by
+1. **Never edit `~/.skillpipe/config.json` or `~/.skillpipe/lock.json` by
    hand.** Always go through the CLI.
 2. **Never push directly to `main`** of the skills repo. Use `propose`.
 3. **Never pass `--allow-secret-risk` unprompted.** If the validator flags a
    secret, the secret must be removed from the file. Period.
 4. **Never run `gh auth login` on the user's behalf** — it's interactive. The
    bundled skill instructs agents to suggest the user run it themselves.
-5. **Never delete `~/.skillsync/repos/<name>` to "fix" a problem** before
-   reading the error and trying `skillsync doctor`. That folder may contain
+5. **Never delete `~/.skillpipe/repos/<name>` to "fix" a problem** before
+   reading the error and trying `skillpipe doctor`. That folder may contain
    uncommitted local edits.
-6. **Always run `skillsync validate <name>` immediately before
-   `skillsync propose <name>`.** `propose` does this for you, but if you
+6. **Always run `skillpipe validate <name>` immediately before
+   `skillpipe propose <name>`.** `propose` does this for you, but if you
    skipped to `git push` somehow, you skipped validation.
 7. **Always prefer `--dry-run` on `update`** when the change set is large or
    the user is uncertain.
-8. **Always confirm with the user** before `skillsync install all` or
-   `skillsync update --all`, since both can write many files.
+8. **Always confirm with the user** before `skillpipe install all` or
+   `skillpipe update --all`, since both can write many files.
 
 ## When the validator flags something
 
@@ -82,20 +82,20 @@ is a false positive:
 The escape hatch `--allow-secret-risk` exists for genuine emergencies — never
 as a routine workflow.
 
-## What SkillSync does *not* do
+## What Skillpipe does *not* do
 
 Things that are explicitly out of scope:
 
-- **Sandboxing skill content.** SkillSync does not run skills; agents do.
+- **Sandboxing skill content.** Skillpipe does not run skills; agents do.
   Sandboxing is the agent platform's job.
 - **Signature verification.** v0.4+ on the roadmap (signed releases). Today,
   trust is rooted in the GitHub repo you connect.
-- **Network policy.** SkillSync uses `git` and `gh`; it doesn't proxy or
+- **Network policy.** Skillpipe uses `git` and `gh`; it doesn't proxy or
   mediate the network.
 
 ## Reporting a vulnerability
 
-If you find a security issue in SkillSync itself (not in a third-party skill),
+If you find a security issue in Skillpipe itself (not in a third-party skill),
 open a private security advisory on the
 [GitHub repo](https://github.com/levante-hub/skillpipe/security/advisories).
 Do not file it as a public issue.

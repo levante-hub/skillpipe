@@ -18,7 +18,7 @@ import {
 import path from "node:path";
 import { getConnectedWorkspace } from "./repo-connect.js";
 import { expandHome } from "../utils/fs.js";
-import { SkillSyncError } from "../utils/errors.js";
+import { SkillpipeError } from "../utils/errors.js";
 
 export interface UpdateOptions {
   name?: string;
@@ -64,10 +64,10 @@ export async function runUpdate(opts: UpdateOptions = {}): Promise<void> {
       installed?.installPath ?? defaultInstallPath
     );
     if (!installPath) {
-      throw new SkillSyncError(
+      throw new SkillpipeError(
         "TARGET_NOT_INSTALLED",
         `No install path configured for target "${targetName}".`,
-        "Run `skillsync init`, reinstall the skill, or configure the target manually."
+        "Run `skillpipe init`, reinstall the skill, or configure the target manually."
       );
     }
     const adapter = getAdapter(targetName);

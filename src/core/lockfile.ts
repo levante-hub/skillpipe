@@ -6,7 +6,7 @@ import {
   InstalledSkill
 } from "../schemas/lockfile.schema.js";
 import { pathExists, readJson, writeJson } from "../utils/fs.js";
-import { SkillSyncError } from "../utils/errors.js";
+import { SkillpipeError } from "../utils/errors.js";
 
 export async function loadLockfile(): Promise<Lockfile> {
   if (!(await pathExists(LOCK_PATH))) {
@@ -16,7 +16,7 @@ export async function loadLockfile(): Promise<Lockfile> {
     const raw = await readJson<unknown>(LOCK_PATH);
     return LockfileSchema.parse(raw);
   } catch (e) {
-    throw new SkillSyncError(
+    throw new SkillpipeError(
       "LOCKFILE_INVALID",
       `Invalid lockfile at ${LOCK_PATH}: ${(e as Error).message}`
     );

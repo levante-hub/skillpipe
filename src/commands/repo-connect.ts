@@ -25,12 +25,12 @@ import {
   defaultRepoConfigFor
 } from "../core/repository.js";
 import { ensureDir, pathExists } from "../utils/fs.js";
-import { SkillSyncError } from "../utils/errors.js";
+import { SkillpipeError } from "../utils/errors.js";
 
 export interface RepoConnectOptions {
   url: string;
   branch?: string;
-  initSkillsync?: boolean;
+  initSkillpipe?: boolean;
 }
 
 export async function runRepoConnect(opts: RepoConnectOptions): Promise<void> {
@@ -47,10 +47,10 @@ export async function runRepoConnect(opts: RepoConnectOptions): Promise<void> {
     logger.step(`Reusing existing workspace ${workspace}`);
     const existingRemote = await getRemoteUrl(workspace);
     if (!existingRemote) {
-      throw new SkillSyncError(
+      throw new SkillpipeError(
         "REPO_NOT_FOUND",
         `Workspace at ${workspace} is not a Git repository with origin remote.`,
-        "Remove the workspace manually or point SkillSync at a different repository."
+        "Remove the workspace manually or point Skillpipe at a different repository."
       );
     }
     const normalizedRemote = parseGithubUrl(existingRemote);
@@ -58,14 +58,14 @@ export async function runRepoConnect(opts: RepoConnectOptions): Promise<void> {
       normalizedRemote.owner !== parsed.owner ||
       normalizedRemote.name !== parsed.name
     ) {
-      throw new SkillSyncError(
+      throw new SkillpipeError(
         "REPO_REMOTE_MISMATCH",
         `Workspace ${workspace} points to ${normalizedRemote.owner}/${normalizedRemote.name}, not ${parsed.owner}/${parsed.name}.`,
         "Use a different repo name or remove the existing workspace manually."
       );
     }
     if (await hasLocalChanges(workspace)) {
-      throw new SkillSyncError(
+      throw new SkillpipeError(
         "WORKSPACE_DIRTY",
         `Workspace ${workspace} has local changes.`,
         "Commit, stash or discard the changes before reconnecting the repository."
@@ -73,17 +73,17 @@ export async function runRepoConnect(opts: RepoConnectOptions): Promise<void> {
     }
   }
 
-  const skillsyncJson = path.join(workspace, "skillsync.json");
-  if (!(await pathExists(skillsyncJson))) {
-    if (opts.initSkillsync) {
-      logger.warn("skillsync.json not found. Creating a default one (commit it manually).");
+  const skillpipeJson = path.join(workspace, "skillpipe.json");
+  if (!(await pathExists(skillpipeJson))) {
+    if (opts.initSkillpipe) {
+      logger.warn("skillpipe.json not found. Creating a default one (commit it manually).");
       await ensureDir(path.join(workspace, "skills"));
       await writeRepoConfig(workspace, defaultRepoConfigFor(parsed.name));
     } else {
-      throw new SkillSyncError(
+      throw new SkillpipeError(
         "REPO_NOT_FOUND",
-        `Repository at ${parsed.url} has no skillsync.json.`,
-        "Pass --init to scaffold one, or run `skillsync repo create` for a fresh repo."
+        `Repository at ${parsed.url} has no skillpipe.json.`,
+        "Pass --init to scaffold one, or run `skillpipe repo create` for a fresh repo."
       );
     }
   }
@@ -112,7 +112,7 @@ export async function runRepoConnect(opts: RepoConnectOptions): Promise<void> {
       7
     )}).`
   );
-  logger.hint("Run `skillsync list` to see available skills.");
+  logger.hint("Run `skillpipe list` to see available skills.");
 }
 
 export async function getConnectedWorkspace(): Promise<{
@@ -121,15 +121,15 @@ export async function getConnectedWorkspace(): Promise<{
 }> {
   const config = await loadOrInitLocalConfig();
   if (!config.defaultRepo) {
-    throw new SkillSyncError(
+    throw new SkillpipeError(
       "REPO_NOT_CONNECTED",
       "No repository is connected.",
-      "Run `skillsync repo connect <url>` first."
+      "Run `skillpipe repo connect <url>` first."
     );
   }
   const [, name] = config.defaultRepo.split("/");
   if (!name) {
-    throw new SkillSyncError(
+    throw new SkillpipeError(
       "REPO_NOT_CONNECTED",
       `Stored repo "${config.defaultRepo}" is malformed.`
     );

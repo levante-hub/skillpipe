@@ -26,7 +26,7 @@ import {
   renderSkillTemplate,
   renderSkillReadme
 } from "../utils/template.js";
-import { SkillSyncError } from "../utils/errors.js";
+import { SkillpipeError } from "../utils/errors.js";
 
 export interface RepoCreateOptions {
   name: string;
@@ -42,7 +42,7 @@ export async function runRepoCreate(opts: RepoCreateOptions): Promise<void> {
   const visibility = opts.visibility ?? "private";
   const owner = await ghCurrentUser();
   if (!owner) {
-    throw new SkillSyncError(
+    throw new SkillpipeError(
       "GH_NOT_AUTHENTICATED",
       "Could not determine the authenticated GitHub user."
     );
@@ -53,7 +53,7 @@ export async function runRepoCreate(opts: RepoCreateOptions): Promise<void> {
     name: opts.name,
     visibility,
     description:
-      opts.description ?? `${opts.name} — agent skills repo (SkillSync)`,
+      opts.description ?? `${opts.name} — agent skills repo (Skillpipe)`,
     ownerLogin: owner
   });
 
@@ -67,7 +67,7 @@ export async function runRepoCreate(opts: RepoCreateOptions): Promise<void> {
 
   logger.step("Creating initial commit");
   await checkoutBranch(workspace, "main", true);
-  await addAndCommit(workspace, ["."], "chore: initial SkillSync repo scaffold");
+  await addAndCommit(workspace, ["."], "chore: initial Skillpipe repo scaffold");
   await pushBranch(workspace, "main");
 
   await fetchRepo(workspace);
@@ -87,7 +87,7 @@ export async function runRepoCreate(opts: RepoCreateOptions): Promise<void> {
   logger.success(
     `Repo ready: https://github.com/${owner}/${opts.name}`
   );
-  logger.hint("Edit skills/example/SKILL.md and run `skillsync propose example`.");
+  logger.hint("Edit skills/example/SKILL.md and run `skillpipe propose example`.");
 }
 
 async function scaffoldRepo(
@@ -144,7 +144,7 @@ on:
   pull_request:
     paths:
       - 'skills/**'
-      - 'skillsync.json'
+      - 'skillpipe.json'
   push:
     branches: [ main ]
 
@@ -156,7 +156,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm install -g skillsync
-      - run: skillsync validate --repo .
+      - run: npm install -g skillpipe
+      - run: skillpipe validate --repo .
 `;
 }

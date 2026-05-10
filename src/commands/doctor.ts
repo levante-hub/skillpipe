@@ -43,7 +43,7 @@ export async function runDoctor(): Promise<{ failures: number }> {
   checks.push({
     label: `local config exists (${CONFIG_PATH})`,
     ok: cfgExists,
-    hint: cfgExists ? undefined : "Run `skillsync init`"
+    hint: cfgExists ? undefined : "Run `skillpipe init`"
   });
 
   if (cfgExists) {
@@ -63,13 +63,13 @@ export async function runDoctor(): Promise<{ failures: number }> {
       checks.push({
         label: `workspace for ${cfg.defaultRepo}`,
         ok: wsExists,
-        hint: wsExists ? undefined : "Run `skillsync repo connect <url>`"
+        hint: wsExists ? undefined : "Run `skillpipe repo connect <url>`"
       });
       } else {
         checks.push({
           label: "default repo connected",
           ok: false,
-          hint: "Run `skillsync repo connect <url>`"
+          hint: "Run `skillpipe repo connect <url>`"
         });
       }
     } catch (e) {

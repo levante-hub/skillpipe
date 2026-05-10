@@ -22,7 +22,7 @@ import {
 import { ParsedSkill } from "../core/skill.js";
 import { getConnectedWorkspace } from "./repo-connect.js";
 import { expandHome } from "../utils/fs.js";
-import { SkillSyncError } from "../utils/errors.js";
+import { SkillpipeError } from "../utils/errors.js";
 
 export interface InstallOptions {
   name: string;
@@ -41,10 +41,10 @@ export async function runInstall(opts: InstallOptions): Promise<void> {
     opts.installPath ?? targetCfg?.installPath ?? ""
   );
   if (!installPath) {
-    throw new SkillSyncError(
+    throw new SkillpipeError(
       "TARGET_NOT_INSTALLED",
       `No install path configured for target "${targetName}".`,
-      "Run `skillsync init` or pass --path."
+      "Run `skillpipe init` or pass --path."
     );
   }
 
@@ -78,7 +78,7 @@ export async function runInstall(opts: InstallOptions): Promise<void> {
         for (const issue of report.issues) {
           logger.error(`  [${issue.code}] ${issue.message}`);
         }
-        throw new SkillSyncError(
+        throw new SkillpipeError(
           "VALIDATION_FAILED",
           `Skill "${skill.metadata.name}" failed validation.`
         );

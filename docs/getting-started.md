@@ -1,6 +1,6 @@
 # Getting started
 
-This walkthrough sets up SkillSync on a new machine and installs your first skill.
+This walkthrough sets up Skillpipe on a new machine and installs your first skill.
 
 ## Requirements
 
@@ -8,7 +8,7 @@ This walkthrough sets up SkillSync on a new machine and installs your first skil
 - `git` on `PATH`
 - [GitHub CLI](https://cli.github.com/) (`gh`) authenticated with `gh auth login`
 
-If anything is missing, run `skillsync doctor` after install — it will tell you
+If anything is missing, run `skillpipe doctor` after install — it will tell you
 exactly what to fix.
 
 ## 1. Install
@@ -17,31 +17,31 @@ exactly what to fix.
 npm install -g skillpipe
 ```
 
-The package on npm is `skillpipe`; the CLI it ships is `skillsync`.
+The package on npm is `skillpipe`; the CLI it ships is `skillpipe`.
 
 ```bash
-skillsync --version
+skillpipe --version
 ```
 
 ## 2. Initialize
 
 ```bash
-skillsync init
+skillpipe init
 ```
 
 What happens:
 
-- Creates `~/.skillsync/config.json` and `~/.skillsync/lock.json`.
+- Creates `~/.skillpipe/config.json` and `~/.skillpipe/lock.json`.
 - Asks which agent you're setting up here (Claude Code or a custom path).
-- Installs the bundled `skillsync-cli` skill into the **current project**, so any
+- Installs the bundled `skillpipe-cli` skill into the **current project**, so any
   agent working in this directory immediately knows how to use the CLI itself.
-  - For Claude Code: `<cwd>/.claude/skills/skillsync-cli/`
-  - For Custom: `<your-path>/skillsync-cli/`
+  - For Claude Code: `<cwd>/.claude/skills/skillpipe-cli/`
+  - For Custom: `<your-path>/skillpipe-cli/`
 
 For a non-interactive install with defaults (Claude Code):
 
 ```bash
-skillsync init --yes
+skillpipe init --yes
 ```
 
 ## 3. Connect a repository
@@ -49,17 +49,17 @@ skillsync init --yes
 If you already have a skills repo on GitHub:
 
 ```bash
-skillsync repo connect https://github.com/<you>/my-agent-skills
+skillpipe repo connect https://github.com/<you>/my-agent-skills
 ```
 
 Or, if you want a fresh one with the standard layout (`skills/`, `agents/`,
 `workflows/`, `templates/`, `policies/`, validate workflow):
 
 ```bash
-skillsync repo create my-agent-skills --private
+skillpipe repo create my-agent-skills --private
 ```
 
-The connected repo is cloned into `~/.skillsync/repos/<name>` — that local checkout
+The connected repo is cloned into `~/.skillpipe/repos/<name>` — that local checkout
 is the source the CLI reads from.
 
 ## 4. Install skills
@@ -67,14 +67,14 @@ is the source the CLI reads from.
 See what's available:
 
 ```bash
-skillsync list
+skillpipe list
 ```
 
 Install one or all:
 
 ```bash
-skillsync install brand-analysis
-skillsync install all
+skillpipe install brand-analysis
+skillpipe install all
 ```
 
 Skills are **copied** (not symlinked) into the target install path. Default for
@@ -84,21 +84,21 @@ Claude Code is `~/.claude/skills/` (user scope). You can override with
 ## 5. Stay up to date
 
 ```bash
-skillsync status        # which skills are installed, which have upstream changes
-skillsync update        # pull and re-install everything that drifted
-skillsync update --dry-run  # show what would change without writing
+skillpipe status        # which skills are installed, which have upstream changes
+skillpipe update        # pull and re-install everything that drifted
+skillpipe update --dry-run  # show what would change without writing
 ```
 
 ## 6. Propose improvements
 
 When you want to edit or add a skill, work in the local checkout
-(`~/.skillsync/repos/<repo>/skills/<name>/`) and open a PR via the CLI:
+(`~/.skillpipe/repos/<repo>/skills/<name>/`) and open a PR via the CLI:
 
 ```bash
-skillsync add customer-support -d "Triage and answer support tickets"
-# edit ~/.skillsync/repos/<repo>/skills/customer-support/SKILL.md
-skillsync validate customer-support
-skillsync propose customer-support -m "feat: customer-support skill"
+skillpipe add customer-support -d "Triage and answer support tickets"
+# edit ~/.skillpipe/repos/<repo>/skills/customer-support/SKILL.md
+skillpipe validate customer-support
+skillpipe propose customer-support -m "feat: customer-support skill"
 ```
 
 `propose` validates the skill, creates a branch, commits, pushes, and opens a PR

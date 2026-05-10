@@ -1,6 +1,6 @@
 # Targets & adapters
 
-A **target** is the agent environment where a skill is installed. SkillSync
+A **target** is the agent environment where a skill is installed. Skillpipe
 talks to each target through an **adapter**: a small piece of code that knows
 how to lay out skill files for that specific environment.
 
@@ -13,11 +13,11 @@ how to lay out skill files for that specific environment.
 
 ## Choosing a target
 
-`skillsync init` asks which target you want and saves it as the default in
-`~/.skillsync/config.json`. You can override per-command:
+`skillpipe init` asks which target you want and saves it as the default in
+`~/.skillpipe/config.json`. You can override per-command:
 
 ```bash
-skillsync install brand-analysis --target custom --path ./agent/skills
+skillpipe install brand-analysis --target custom --path ./agent/skills
 ```
 
 ## User scope vs project scope (Claude Code)
@@ -29,9 +29,9 @@ For Claude Code, skills can live at two scopes:
 - **Project scope** — `<project>/.claude/skills/`. Only visible inside that
   project. Good for skills that depend on project-specific context.
 
-`skillsync init` writes the bundled `skillsync-cli` skill to **project scope**
+`skillpipe init` writes the bundled `skillpipe-cli` skill to **project scope**
 (it's about teaching the agent in that project how to use the CLI). Subsequent
-`skillsync install` calls default to user scope, configurable via `--path`.
+`skillpipe install` calls default to user scope, configurable via `--path`.
 
 ## Custom adapter
 
@@ -42,7 +42,7 @@ Use it when:
 - You want skills in a non-default location for a specific project.
 - You're integrating with an editor or IDE that consumes skills its own way.
 
-Configure once via `skillsync init` (choose **Custom path**, enter the directory)
+Configure once via `skillpipe init` (choose **Custom path**, enter the directory)
 or override per-command with `--target custom --path <dir>`.
 
 ## Roadmap
@@ -61,7 +61,7 @@ registering the adapter in `src/adapters/index.ts`. See
 ## How install actually works
 
 For all adapters today, `install` is a **copy**. The skill folder
-(`~/.skillsync/repos/<repo>/skills/<name>/`) is copied to the target install
+(`~/.skillpipe/repos/<repo>/skills/<name>/`) is copied to the target install
 path. If the destination already exists, it's overwritten. The copy mode is
 recorded in the lockfile so `update` knows what to re-install.
 

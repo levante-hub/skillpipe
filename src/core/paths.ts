@@ -2,10 +2,10 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const SKILLSYNC_HOME = path.join(os.homedir(), ".skillsync");
-export const CONFIG_PATH = path.join(SKILLSYNC_HOME, "config.json");
-export const LOCK_PATH = path.join(SKILLSYNC_HOME, "lock.json");
-export const REPOS_DIR = path.join(SKILLSYNC_HOME, "repos");
+export const SKILLPIPE_HOME = path.join(os.homedir(), ".skillpipe");
+export const CONFIG_PATH = path.join(SKILLPIPE_HOME, "config.json");
+export const LOCK_PATH = path.join(SKILLPIPE_HOME, "lock.json");
+export const REPOS_DIR = path.join(SKILLPIPE_HOME, "repos");
 
 export function workspaceForRepo(repoName: string): string {
   return path.join(REPOS_DIR, sanitizeRepoName(repoName));
@@ -19,7 +19,7 @@ export function defaultClaudeProjectSkillsPath(cwd: string = process.cwd()): str
   return path.join(cwd, ".claude", "skills");
 }
 
-export const BUNDLED_SKILL_NAME = "skillsync-cli";
+export const BUNDLED_SKILL_NAME = "skillpipe-cli";
 
 export function bundledSkillPath(name: string): string {
   const here = path.dirname(fileURLToPath(import.meta.url));

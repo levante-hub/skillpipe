@@ -5,7 +5,7 @@ import {
   SkillMetadata,
   SkillMetadataSchema
 } from "../schemas/skill.schema.js";
-import { SkillSyncError } from "../utils/errors.js";
+import { SkillpipeError } from "../utils/errors.js";
 
 export interface ParsedSkill {
   metadata: SkillMetadata;
@@ -20,7 +20,7 @@ export interface ParsedSkill {
 export async function parseSkill(skillFolder: string): Promise<ParsedSkill> {
   const skillFile = path.join(skillFolder, "SKILL.md");
   if (!(await pathExists(skillFile))) {
-    throw new SkillSyncError(
+    throw new SkillpipeError(
       "SKILL_INVALID",
       `Missing SKILL.md in ${skillFolder}`
     );
@@ -32,7 +32,7 @@ export async function parseSkill(skillFolder: string): Promise<ParsedSkill> {
     const issues = result.error.issues
       .map((i) => `${i.path.join(".") || "frontmatter"}: ${i.message}`)
       .join("; ");
-    throw new SkillSyncError(
+    throw new SkillpipeError(
       "SKILL_INVALID",
       `Invalid frontmatter in ${skillFile}: ${issues}`
     );

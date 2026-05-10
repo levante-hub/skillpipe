@@ -36,13 +36,13 @@ npm run build
 node dist/cli.js init --yes
 ```
 
-Or use `npm link` to make `skillsync` available globally from your local
+Or use `npm link` to make `skillpipe` available globally from your local
 checkout:
 
 ```bash
 npm run build
 npm link
-skillsync --version
+skillpipe --version
 # when done:
 npm unlink -g skillpipe
 ```
@@ -55,10 +55,10 @@ src/
   commands/             # one file per command (init, install, propose, …)
   adapters/             # target adapters — claude-code, custom, index
   core/                 # config, lockfile, sync, paths, github helpers
-  schemas/              # zod schemas for config, skill frontmatter, skillsync.json
+  schemas/              # zod schemas for config, skill frontmatter, skillpipe.json
   utils/                # fs, logger, errors
 skills/
-  skillsync-cli/        # bundled skill, ships in the npm tarball
+  skillpipe-cli/        # bundled skill, ships in the npm tarball
 docs/                   # user + contributor docs
 dist/                   # build output (gitignored)
 ```
@@ -70,7 +70,7 @@ them automatically.
 
 - TypeScript strict mode is on. Don't disable it for new code.
 - Prefer named exports.
-- Throw `SkillSyncError(code, message)` for user-facing errors; the CLI
+- Throw `SkillpipeError(code, message)` for user-facing errors; the CLI
   formats those as `[CODE] message` and adds a hint. Use a new code only when
   no existing one fits — see `src/utils/errors.ts` for the table.
 - Keep commands thin: they parse flags, call into `core/` and `adapters/`,
@@ -103,7 +103,7 @@ npm test
 
 Open an issue first (or start a draft PR) for:
 
-- New top-level commands (`skillsync foo`).
+- New top-level commands (`skillpipe foo`).
 - Changes to the lockfile or config schema.
 - Changes to the validation rules (especially the secret-pattern table).
 - Anything that affects how skills are installed (mode, layout, scope rules).

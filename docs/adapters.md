@@ -1,6 +1,6 @@
 # Adding a new adapter
 
-A **target adapter** teaches SkillSync how to install skills into one specific
+A **target adapter** teaches Skillpipe how to install skills into one specific
 agent environment. The CLI ships with two: `claude-code` (first-class, copies
 to `~/.claude/skills/` or `<project>/.claude/skills/`) and `custom` (generic
 "copy to this path"). This page walks through adding a new one.
@@ -161,7 +161,7 @@ Add `src/adapters/cursor.test.ts` covering at minimum:
 - `removeSkill` no-ops when the path is missing.
 - `listInstalledSkills` returns the right shape.
 - `detect()` flips based on whether `~/.cursor` exists. Use a temp
-  `os.homedir()` mock or `SKILLSYNC_HOME`-style isolation; do not touch the
+  `os.homedir()` mock or `SKILLPIPE_HOME`-style isolation; do not touch the
   real home directory.
 
 Look at the existing adapter tests (if present) and `src/core/sync.test.ts`
@@ -175,7 +175,7 @@ for the patterns the project already uses.
 
 ### 7. Update the bundled skill
 
-The bundled `skillsync-cli` skill (in `skills/skillsync-cli/SKILL.md`) lists
+The bundled `skillpipe-cli` skill (in `skills/skillpipe-cli/SKILL.md`) lists
 the adapters it knows about. If your adapter is part of the standard set
 shipping with the CLI, mention it in the **Mental model** and **Anti-patterns**
 sections so an AI agent reading the skill knows the new option exists.
@@ -206,7 +206,7 @@ A few things to keep in mind while writing an adapter:
   target needs a different format, that's a separate concern (a transform
   layer), not an adapter concern.
 - Spawning processes during install. Adapters should be filesystem-pure.
-- Adding adapter-specific fields to `skillsync.json` or the lockfile.
+- Adding adapter-specific fields to `skillpipe.json` or the lockfile.
   Adapter behavior should be derivable from the `targets` array in the
   skill's frontmatter and the configured install path. If you genuinely need
   more state, open an issue first.
@@ -220,4 +220,4 @@ Once your adapter has tests and docs, open a PR. Title:
 2. Any non-default behavior (post-install, layout quirks).
 3. How you tested it (the `npm test` output is fine, plus any manual run).
 
-Welcome new adapters — they're how SkillSync grows.
+Welcome new adapters — they're how Skillpipe grows.

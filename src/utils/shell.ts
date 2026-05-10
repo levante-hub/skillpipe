@@ -1,5 +1,5 @@
 import { execa, type ExecaError } from "execa";
-import { SkillSyncError } from "./errors.js";
+import { SkillpipeError } from "./errors.js";
 
 export interface ShellResult {
   stdout: string;
@@ -53,6 +53,6 @@ export async function requireBinary(
 ): Promise<void> {
   const ok = await which(cmd);
   if (!ok) {
-    throw new SkillSyncError(code, `${cmd} is not installed or not in PATH`, hint);
+    throw new SkillpipeError(code, `${cmd} is not installed or not in PATH`, hint);
   }
 }

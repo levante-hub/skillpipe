@@ -1,5 +1,5 @@
 import { run, which, requireBinary } from "../utils/shell.js";
-import { SkillSyncError } from "../utils/errors.js";
+import { SkillpipeError } from "../utils/errors.js";
 
 export async function ghAvailable(): Promise<boolean> {
   return which("gh");
@@ -31,7 +31,7 @@ export async function requireGhAuth(): Promise<void> {
   await ensureGhAvailable();
   const status = await ghAuthStatus();
   if (!status.authenticated) {
-    throw new SkillSyncError(
+    throw new SkillpipeError(
       "GH_NOT_AUTHENTICATED",
       "GitHub CLI is not authenticated.",
       "Run `gh auth login` and try again."
@@ -65,7 +65,7 @@ export async function ghCreateRepo(
   }
   const r = await run("gh", args);
   if (r.exitCode !== 0) {
-    throw new SkillSyncError(
+    throw new SkillpipeError(
       "GIT_OPERATION_FAILED",
       `gh repo create failed: ${r.stderr.trim() || r.stdout.trim()}`
     );
@@ -92,7 +92,7 @@ export async function ghCreatePr(
   if (opts.draft) args.push("--draft");
   const r = await run("gh", args, { cwd: opts.cwd });
   if (r.exitCode !== 0) {
-    throw new SkillSyncError(
+    throw new SkillpipeError(
       "GIT_OPERATION_FAILED",
       `gh pr create failed: ${r.stderr.trim() || r.stdout.trim()}`,
       "Make sure the branch is pushed and you have permission to open PRs."

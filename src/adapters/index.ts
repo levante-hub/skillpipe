@@ -1,4 +1,4 @@
-import { SkillSyncError } from "../utils/errors.js";
+import { SkillpipeError } from "../utils/errors.js";
 import { ClaudeCodeAdapter } from "./claude-code.js";
 import { CustomAdapter } from "./custom.js";
 
@@ -34,7 +34,7 @@ REGISTRY.set("custom", new CustomAdapter());
 export function getAdapter(name: string): TargetAdapter {
   const a = REGISTRY.get(name);
   if (!a) {
-    throw new SkillSyncError(
+    throw new SkillpipeError(
       "TARGET_UNKNOWN",
       `Unknown target "${name}". Available: ${availableAdapters().join(", ")}`
     );

@@ -34,7 +34,7 @@ targets: [claude-code]
 |---|---|---|
 | `name` | yes | Slug. Must equal the folder name. Lowercase, dashes, no spaces. |
 | `version` | yes | Semver (`MAJOR.MINOR.PATCH`). Bump when you change the body. |
-| `description` | yes | One-line summary of what the skill does. Shown by `skillsync list`. |
+| `description` | yes | One-line summary of what the skill does. Shown by `skillpipe list`. |
 | `author` | no | Free text. |
 | `tags` | no | Array of strings. Useful for filtering / discovery. |
 | `targets` | yes | Array of target adapter names this skill is meant for. Today: `claude-code`, `custom`. |
@@ -42,7 +42,7 @@ targets: [claude-code]
 ## Body (recommended structure)
 
 The body is freeform Markdown, but skills that an AI agent can use reliably tend
-to follow a predictable structure. The bundled `skillsync-cli` skill is a good
+to follow a predictable structure. The bundled `skillpipe-cli` skill is a good
 reference. The sections that pay off:
 
 - **Goal** — one paragraph: what this skill enables.
@@ -98,7 +98,7 @@ Every skill is validated before installation and before `propose`:
    follow blindly. The validator is conservative; if it flags something, take it
    seriously.
 
-Run `skillsync validate <name>` before every `propose`.
+Run `skillpipe validate <name>` before every `propose`.
 
 ## Versioning
 
@@ -122,4 +122,4 @@ For the `claude-code` target:
 For the `custom` target: whatever path you configured / passed via `--path`.
 
 The installed copy is **a copy**. Editing it directly is silently overwritten on
-the next `update`. Always edit in `~/.skillsync/repos/<repo>/skills/<name>/`.
+the next `update`. Always edit in `~/.skillpipe/repos/<repo>/skills/<name>/`.

@@ -19,7 +19,7 @@ import {
   defaultClaudeProjectSkillsPath,
   bundledSkillPath,
   BUNDLED_SKILL_NAME,
-  SKILLSYNC_HOME,
+  SKILLPIPE_HOME,
   REPOS_DIR
 } from "../core/paths.js";
 import { runRepoConnect } from "./repo-connect.js";
@@ -31,9 +31,9 @@ export interface InitOptions {
 }
 
 export async function runInit(opts: InitOptions = {}): Promise<void> {
-  logger.step("Initializing SkillSync");
+  logger.step("Initializing Skillpipe");
 
-  await ensureDir(SKILLSYNC_HOME);
+  await ensureDir(SKILLPIPE_HOME);
   await ensureDir(REPOS_DIR);
 
   const config: LocalConfig = await loadOrInitLocalConfig();
@@ -44,7 +44,7 @@ export async function runInit(opts: InitOptions = {}): Promise<void> {
   const auth = ghAvail ? await ghAuthStatus() : null;
 
   if (!ghAvail) {
-    logger.warn("GitHub CLI (gh) is not installed. SkillSync uses it for auth.");
+    logger.warn("GitHub CLI (gh) is not installed. Skillpipe uses it for auth.");
     logger.hint("Install it from https://cli.github.com/ and run `gh auth login`.");
   } else if (!auth?.authenticated) {
     logger.warn("GitHub CLI is installed but not authenticated.");
@@ -60,7 +60,7 @@ export async function runInit(opts: InitOptions = {}): Promise<void> {
     await saveLocalConfig(config);
     await installBundledSkill("claude-code");
     logger.success("Initialized with default settings.");
-    logger.hint("Connect a repo with `skillsync repo connect <url>`.");
+    logger.hint("Connect a repo with `skillpipe repo connect <url>`.");
     return;
   }
 
@@ -124,14 +124,14 @@ export async function runInit(opts: InitOptions = {}): Promise<void> {
     mode: "copy"
   };
   await saveLocalConfig(config);
-  logger.success(`Saved local config at ~/.skillsync/config.json`);
+  logger.success(`Saved local config at ~/.skillpipe/config.json`);
 
   await installBundledSkill(answers.target, answers.customProjectPath);
 
   if (answers.setupRepo === "existing" && answers.repoUrl) {
     await runRepoConnect({ url: answers.repoUrl });
   } else {
-    logger.hint("Connect a repo later with `skillsync repo connect <url>`.");
+    logger.hint("Connect a repo later with `skillpipe repo connect <url>`.");
   }
 }
 

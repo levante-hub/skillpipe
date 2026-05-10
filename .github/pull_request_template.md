@@ -8,9 +8,9 @@
 
 ## Checklist
 
-- [ ] Ran `skillsync validate`
+- [ ] Ran `skillpipe validate`
 - [ ] No secrets in committed files
 - [ ] `SKILL.md` frontmatter is up to date
 - [ ] Description and instructions are accurate
 
-> Auto-generated PRs from `skillsync propose` are still subject to review.
+> Auto-generated PRs from `skillpipe propose` are still subject to review.

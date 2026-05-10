@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { logger } from "./utils/logger.js";
-import { isSkillSyncError } from "./utils/errors.js";
+import { isSkillpipeError } from "./utils/errors.js";
 
 import { runInit } from "./commands/init.js";
 import { runRepoConnect } from "./commands/repo-connect.js";
@@ -18,7 +18,7 @@ import { runRepoCreate } from "./commands/repo-create.js";
 const program = new Command();
 
 program
-  .name("skillsync")
+  .name("skillpipe")
   .description("Git-native CLI for syncing AI agent skills across environments.")
   .version("0.1.0")
   .option("-v, --verbose", "enable verbose logging")
@@ -29,7 +29,7 @@ program
 
 program
   .command("init")
-  .description("Initialize SkillSync on this machine.")
+  .description("Initialize Skillpipe on this machine.")
   .option("-y, --yes", "accept defaults without prompting")
   .action(wrap(async (opts: { yes?: boolean }) => runInit({ yes: opts.yes })));
 
@@ -39,15 +39,15 @@ const repo = program
 
 repo
   .command("connect <url>")
-  .description("Connect SkillSync to an existing GitHub repository.")
+  .description("Connect Skillpipe to an existing GitHub repository.")
   .option("-b, --branch <name>", "branch to track locally (defaults to repo default)")
-  .option("--init", "create skillsync.json if missing")
+  .option("--init", "create skillpipe.json if missing")
   .action(
     wrap(async (url: string, opts: { branch?: string; init?: boolean }) =>
       runRepoConnect({
         url,
         branch: opts.branch,
-        initSkillsync: opts.init
+        initSkillpipe: opts.init
       })
     )
   );
@@ -116,7 +116,7 @@ program
 
 program
   .command("doctor")
-  .description("Run diagnostics for the SkillSync setup.")
+  .description("Run diagnostics for the Skillpipe setup.")
   .action(
     wrap(async () => {
       const { failures } = await runDoctor();
@@ -178,7 +178,7 @@ program
 
 repo
   .command("create <name>")
-  .description("Create a new GitHub repository with the SkillSync structure.")
+  .description("Create a new GitHub repository with the Skillpipe structure.")
   .option("--public", "create a public repository")
   .option("--private", "create a private repository (default)")
   .option("-d, --description <text>", "repository description")
@@ -222,14 +222,14 @@ function wrap<T extends AnyAsync>(fn: T): T {
 }
 
 function reportError(e: unknown): void {
-  if (isSkillSyncError(e)) {
+  if (isSkillpipeError(e)) {
     logger.error(`[${e.code}] ${e.message}`);
     if (e.hint) logger.hint(e.hint);
     return;
   }
   if (e instanceof Error) {
     logger.error(e.message);
-    if (process.env.SKILLSYNC_DEBUG) {
+    if (process.env.SKILLPIPE_DEBUG) {
       console.error(e.stack);
     }
     return;

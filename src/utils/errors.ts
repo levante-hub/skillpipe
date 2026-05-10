@@ -1,4 +1,4 @@
-export type SkillSyncErrorCode =
+export type SkillpipeErrorCode =
   | "CONFIG_NOT_FOUND"
   | "CONFIG_INVALID"
   | "REPO_NOT_CONNECTED"
@@ -20,18 +20,18 @@ export type SkillSyncErrorCode =
   | "USER_ABORTED"
   | "UNKNOWN";
 
-export class SkillSyncError extends Error {
-  readonly code: SkillSyncErrorCode;
+export class SkillpipeError extends Error {
+  readonly code: SkillpipeErrorCode;
   readonly hint?: string;
 
-  constructor(code: SkillSyncErrorCode, message: string, hint?: string) {
+  constructor(code: SkillpipeErrorCode, message: string, hint?: string) {
     super(message);
-    this.name = "SkillSyncError";
+    this.name = "SkillpipeError";
     this.code = code;
     this.hint = hint;
   }
 }
 
-export function isSkillSyncError(e: unknown): e is SkillSyncError {
-  return e instanceof SkillSyncError;
+export function isSkillpipeError(e: unknown): e is SkillpipeError {
+  return e instanceof SkillpipeError;
 }

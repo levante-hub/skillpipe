@@ -1,45 +1,45 @@
 import path from "node:path";
 import {
-  SkillSyncRepoConfig,
-  SkillSyncRepoConfigSchema,
-  defaultSkillSyncRepoConfig
-} from "../schemas/skillsync.schema.js";
+  SkillpipeRepoConfig,
+  SkillpipeRepoConfigSchema,
+  defaultSkillpipeRepoConfig
+} from "../schemas/skillpipe.schema.js";
 import { listDirs, pathExists, readJson, writeJson } from "../utils/fs.js";
-import { SkillSyncError } from "../utils/errors.js";
+import { SkillpipeError } from "../utils/errors.js";
 import { ParsedSkill, parseSkill } from "./skill.js";
 
 export interface RepositoryHandle {
   workspace: string;
-  config: SkillSyncRepoConfig;
+  config: SkillpipeRepoConfig;
 }
 
 export async function loadRepository(
   workspace: string
 ): Promise<RepositoryHandle> {
   if (!(await pathExists(workspace))) {
-    throw new SkillSyncError(
+    throw new SkillpipeError(
       "REPO_NOT_FOUND",
       `Workspace not found at ${workspace}`,
-      "Run `skillsync repo connect <url>` first."
+      "Run `skillpipe repo connect <url>` first."
     );
   }
-  const cfgPath = path.join(workspace, "skillsync.json");
+  const cfgPath = path.join(workspace, "skillpipe.json");
   if (!(await pathExists(cfgPath))) {
-    throw new SkillSyncError(
+    throw new SkillpipeError(
       "REPO_NOT_FOUND",
-      `Missing skillsync.json in ${workspace}`,
-      "Initialize the repo with `skillsync repo create` or add skillsync.json manually."
+      `Missing skillpipe.json in ${workspace}`,
+      "Initialize the repo with `skillpipe repo create` or add skillpipe.json manually."
     );
   }
   const raw = await readJson<unknown>(cfgPath);
-  const parsed = SkillSyncRepoConfigSchema.safeParse(raw);
+  const parsed = SkillpipeRepoConfigSchema.safeParse(raw);
   if (!parsed.success) {
     const issues = parsed.error.issues
       .map((i) => `${i.path.join(".") || "root"}: ${i.message}`)
       .join("; ");
-    throw new SkillSyncError(
+    throw new SkillpipeError(
       "CONFIG_INVALID",
-      `Invalid skillsync.json: ${issues}`
+      `Invalid skillpipe.json: ${issues}`
     );
   }
   return { workspace, config: parsed.data };
@@ -47,9 +47,9 @@ export async function loadRepository(
 
 export async function writeRepoConfig(
   workspace: string,
-  config: SkillSyncRepoConfig
+  config: SkillpipeRepoConfig
 ): Promise<void> {
-  await writeJson(path.join(workspace, "skillsync.json"), config);
+  await writeJson(path.join(workspace, "skillpipe.json"), config);
 }
 
 export async function listSkillFolders(
@@ -81,13 +81,13 @@ export async function findSkill(
       return parseSkill(folder);
     }
   }
-  throw new SkillSyncError(
+  throw new SkillpipeError(
     "SKILL_NOT_FOUND",
     `Skill "${name}" not found in repository.`,
-    "Run `skillsync list` to see available skills."
+    "Run `skillpipe list` to see available skills."
   );
 }
 
-export function defaultRepoConfigFor(name: string): SkillSyncRepoConfig {
-  return defaultSkillSyncRepoConfig(name);
+export function defaultRepoConfigFor(name: string): SkillpipeRepoConfig {
+  return defaultSkillpipeRepoConfig(name);
 }

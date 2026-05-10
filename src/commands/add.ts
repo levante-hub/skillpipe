@@ -19,7 +19,7 @@ import {
   validateSkill,
   DEFAULT_VALIDATION_OPTIONS
 } from "../core/validator.js";
-import { SkillSyncError } from "../utils/errors.js";
+import { SkillpipeError } from "../utils/errors.js";
 
 export interface AddOptions {
   name: string;
@@ -33,7 +33,7 @@ export async function runAdd(opts: AddOptions): Promise<void> {
   const repo = await loadRepository(workspace);
 
   if (!/^[a-z0-9][a-z0-9-_]*$/.test(opts.name)) {
-    throw new SkillSyncError(
+    throw new SkillpipeError(
       "SKILL_INVALID",
       `Invalid skill name "${opts.name}".`,
       "Use lowercase letters, digits, '-' and '_' only."
@@ -42,7 +42,7 @@ export async function runAdd(opts: AddOptions): Promise<void> {
 
   const folder = path.join(workspace, repo.config.skillsPath, opts.name);
   if (await pathExists(folder)) {
-    throw new SkillSyncError(
+    throw new SkillpipeError(
       "SKILL_INVALID",
       `Skill folder already exists: ${folder}`
     );
@@ -96,6 +96,6 @@ export async function runAdd(opts: AddOptions): Promise<void> {
   }
 
   logger.hint(
-    `Edit ${folder} and run \`skillsync propose ${opts.name}\` to open a PR.`
+    `Edit ${folder} and run \`skillpipe propose ${opts.name}\` to open a PR.`
   );
 }

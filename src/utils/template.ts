@@ -45,7 +45,7 @@ Describe how the agent should structure its response.
 export function renderSkillReadme(name: string): string {
   return `# ${toTitle(name)}
 
-Skill managed by SkillSync.
+Skill managed by Skillpipe.
 
 See \`SKILL.md\` for the agent-facing instructions.
 `;
@@ -54,20 +54,20 @@ See \`SKILL.md\` for the agent-facing instructions.
 export function renderRepoReadme(name: string): string {
   return `# ${name}
 
-Personal agent skills repository, managed with [SkillSync](https://github.com/saulgomezjimenez/skillsync).
+Personal agent skills repository, managed with [Skillpipe](https://github.com/saulgomezjimenez/skillpipe).
 
 ## Layout
 
 - \`skills/\` — agent skills, one folder per skill.
 - \`agents/\` — agent definitions.
 - \`workflows/\` — multi-step workflows.
-- \`skillsync.json\` — repository metadata.
+- \`skillpipe.json\` — repository metadata.
 
 ## Install a skill in your environment
 
 \`\`\`bash
-skillsync repo connect <this-repo-url>
-skillsync install <skill-name>
+skillpipe repo connect <this-repo-url>
+skillpipe install <skill-name>
 \`\`\`
 `;
 }
