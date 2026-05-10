@@ -17,7 +17,9 @@ import {
   getRemoteUrl,
   hasLocalChanges,
   checkoutTrackingBranch,
-  pullBranch
+  pullBranch,
+  addAndCommit,
+  pushBranch
 } from "../core/git.js";
 import {
   loadRepository,
@@ -111,11 +113,13 @@ export async function runRepoConnect(opts: RepoConnectOptions): Promise<void> {
   }
 
   const skillpipeJson = path.join(workspace, "skillpipe.json");
+  let scaffoldedConfig = false;
   if (!(await pathExists(skillpipeJson))) {
     if (opts.initSkillpipe) {
-      logger.warn("skillpipe.json not found. Creating a default one (commit it manually).");
+      logger.step("skillpipe.json not found; scaffolding a default one.");
       await ensureDir(path.join(workspace, "skills"));
       await writeRepoConfig(workspace, defaultRepoConfigFor(parsed.name));
+      scaffoldedConfig = true;
     } else {
       throw new SkillpipeError(
         "REPO_NOT_FOUND",
@@ -130,6 +134,27 @@ export async function runRepoConnect(opts: RepoConnectOptions): Promise<void> {
   await fetchRepo(workspace);
   await checkoutTrackingBranch(workspace, trackedBranch);
   await pullBranch(workspace, trackedBranch);
+
+  if (scaffoldedConfig) {
+    logger.step(`Committing scaffolded skillpipe.json to ${trackedBranch}`);
+    try {
+      await addAndCommit(
+        workspace,
+        ["skillpipe.json"],
+        "chore: scaffold skillpipe.json via `skillpipe repo connect --init`"
+      );
+      await pushBranch(workspace, trackedBranch);
+      logger.success(`Pushed skillpipe.json to origin/${trackedBranch}.`);
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e);
+      throw new SkillpipeError(
+        "GIT_OPERATION_FAILED",
+        `Scaffolded skillpipe.json but could not commit/push it to ${trackedBranch}: ${detail}`,
+        `Resolve the issue in ${workspace} (push permissions, branch protection), then re-run with --init or commit and push the file manually.`
+      );
+    }
+  }
+
   const commit = await remoteCommit(workspace, trackedBranch);
 
   const config = await loadOrInitLocalConfig();

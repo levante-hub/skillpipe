@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 import { Command } from "commander";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import { logger } from "./utils/logger.js";
 import { isSkillpipeError } from "./utils/errors.js";
 
@@ -15,12 +18,14 @@ import { runAdd } from "./commands/add.js";
 import { runPropose } from "./commands/propose.js";
 import { runRepoCreate } from "./commands/repo-create.js";
 
+const pkg = readPackageJson();
+
 const program = new Command();
 
 program
   .name("skillpipe")
   .description("Git-native CLI for syncing AI agent skills across environments.")
-  .version("0.1.0")
+  .version(pkg.version)
   .option("-v, --verbose", "enable verbose logging")
   .hook("preAction", (thisCommand) => {
     const opts = thisCommand.optsWithGlobals<{ verbose?: boolean }>();
@@ -273,6 +278,12 @@ program.parseAsync(process.argv).catch((err) => {
   reportError(err);
   process.exit(1);
 });
+
+function readPackageJson(): { version: string } {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const pkgPath = path.resolve(here, "..", "package.json");
+  return JSON.parse(readFileSync(pkgPath, "utf8")) as { version: string };
+}
 
 type AnyAsync = (...args: any[]) => Promise<unknown>;
 
