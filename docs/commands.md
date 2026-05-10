@@ -47,10 +47,21 @@ skillpipe repo connect https://github.com/<you>/my-agent-skills
 skillpipe repo connect git@github.com:<you>/my-agent-skills.git --branch dev
 ```
 
+Already-connected behavior:
+
+- Re-running `repo connect` against the **same** repo (and branch) is a no-op:
+  it reports the current connection and exits. Safe to call repeatedly.
+- Pointing at a **different** repo errors with `REPO_ALREADY_CONNECTED` unless
+  you pass `--force`. This prevents accidental clobbering of an existing
+  setup. `skillpipe status` shows what you're currently connected to.
+- Re-running against the same repo with a different `--branch` switches the
+  tracked branch in place.
+
 | Flag | Purpose |
 |---|---|
 | `-b, --branch <name>` | Track a non-default branch. |
 | `--init` | Use only when the repo is brand new and lacks a `skillpipe.json`. |
+| `-f, --force` | Switch to a different repo even if one is already connected. |
 
 ## `skillpipe repo create <name>`
 

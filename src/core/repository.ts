@@ -75,17 +75,26 @@ export async function findSkill(
   repo: RepositoryHandle,
   name: string
 ): Promise<ParsedSkill> {
+  const skill = await tryFindSkill(repo, name);
+  if (skill) return skill;
+  throw new SkillpipeError(
+    "SKILL_NOT_FOUND",
+    `Skill "${name}" not found in repository.`,
+    "Run `skillpipe list` to see available skills."
+  );
+}
+
+export async function tryFindSkill(
+  repo: RepositoryHandle,
+  name: string
+): Promise<ParsedSkill | null> {
   const folders = await listSkillFolders(repo);
   for (const folder of folders) {
     if (path.basename(folder) === name) {
       return parseSkill(folder);
     }
   }
-  throw new SkillpipeError(
-    "SKILL_NOT_FOUND",
-    `Skill "${name}" not found in repository.`,
-    "Run `skillpipe list` to see available skills."
-  );
+  return null;
 }
 
 export function defaultRepoConfigFor(name: string): SkillpipeRepoConfig {

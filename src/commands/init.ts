@@ -20,6 +20,8 @@ import {
   defaultHermesUserSkillsPath,
   defaultOpenclawUserSkillsPath,
   defaultOpenclawProjectSkillsPath,
+  defaultLevanteUserSkillsPath,
+  defaultLevanteProjectSkillsPath,
   bundledSkillPath,
   BUNDLED_SKILL_NAME,
   SKILLPIPE_HOME,
@@ -27,10 +29,12 @@ import {
 } from "../core/paths.js";
 import { runRepoConnect } from "./repo-connect.js";
 import { ensureDir, pathExists } from "../utils/fs.js";
-import { getAdapter } from "../adapters/index.js";
+import { availableAdapters, getAdapter } from "../adapters/index.js";
+import { SkillpipeError } from "../utils/errors.js";
 
 export interface InitOptions {
   yes?: boolean;
+  target?: string;
 }
 
 export async function runInit(opts: InitOptions = {}): Promise<void> {
@@ -55,24 +59,33 @@ export async function runInit(opts: InitOptions = {}): Promise<void> {
   }
 
   if (opts.yes) {
-    config.targets["claude-code"] = {
-      installPath: defaultClaudeUserSkillsPath(),
-      mode: "copy"
-    };
-    config.defaultTarget = "claude-code";
+    const available = availableAdapters();
+    if (!opts.target) {
+      throw new SkillpipeError(
+        "TARGET_UNKNOWN",
+        `--yes requires --target <name>. Available: ${available.join(", ")}.`,
+        "Example: `skillpipe init --yes --target hermes`."
+      );
+    }
+    if (!available.includes(opts.target)) {
+      throw new SkillpipeError(
+        "TARGET_UNKNOWN",
+        `Unknown target "${opts.target}". Available: ${available.join(", ")}.`
+      );
+    }
+    const installPath = userScopeInstallPath(opts.target);
+    config.targets[opts.target] = { installPath, mode: "symlink" };
+    config.defaultTarget = opts.target;
     await saveLocalConfig(config);
-    await installBundledSkill("claude-code");
-    logger.success("Initialized with default settings.");
+    await installBundledSkill(opts.target);
+    logger.success(`Initialized with target "${opts.target}".`);
     logger.hint("Connect a repo with `skillpipe repo connect <url>`.");
     return;
   }
 
-  const answers = await inquirer.prompt<{
+  const repoAnswers = await inquirer.prompt<{
     setupRepo: "existing" | "skip";
     repoUrl?: string;
-    target: string;
-    customProjectPath?: string;
-    installPath: string;
   }>([
     {
       type: "list",
@@ -90,24 +103,20 @@ export async function runInit(opts: InitOptions = {}): Promise<void> {
       when: (a) => a.setupRepo === "existing",
       validate: (v: string) =>
         v.trim().length > 0 ? true : "Repository URL cannot be empty"
-    },
-    {
-      type: "list",
-      name: "target",
-      message: "Which agent are you setting up here?",
-      choices: [
-        { name: "Claude Code", value: "claude-code" },
-        { name: "Hermes", value: "hermes" },
-        { name: "OpenClaw", value: "openclaw" },
-        { name: "Custom path", value: "custom" }
-      ],
-      default: "claude-code"
-    },
+    }
+  ]);
+
+  const target = await promptUntilTargetPicked();
+
+  const followUp = await inquirer.prompt<{
+    customProjectPath?: string;
+    installPath: string;
+  }>([
     {
       type: "input",
       name: "customProjectPath",
       message: "Project skills folder for this agent:",
-      when: (a) => a.target === "custom",
+      when: () => target === "custom",
       default: () => path.join(process.cwd(), "skills"),
       validate: (v: string) =>
         v.trim().length > 0 ? true : "Path cannot be empty"
@@ -116,30 +125,65 @@ export async function runInit(opts: InitOptions = {}): Promise<void> {
       type: "input",
       name: "installPath",
       message: "Install path:",
-      default: (a: { target: string; customProjectPath?: string }) => {
-        if (a.target === "claude-code") return defaultClaudeUserSkillsPath();
-        if (a.target === "hermes") return defaultHermesUserSkillsPath();
-        if (a.target === "openclaw") return defaultOpenclawUserSkillsPath();
+      default: (a: { customProjectPath?: string }) => {
+        if (target === "claude-code") return defaultClaudeUserSkillsPath();
+        if (target === "hermes") return defaultHermesUserSkillsPath();
+        if (target === "openclaw") return defaultOpenclawUserSkillsPath();
+        if (target === "levante") return defaultLevanteUserSkillsPath();
         return a.customProjectPath ?? path.join(process.cwd(), "skills");
       }
     }
   ]);
 
-  config.defaultTarget = answers.target;
-  config.targets[answers.target] = {
-    installPath: path.normalize(answers.installPath),
-    mode: "copy"
+  config.defaultTarget = target;
+  config.targets[target] = {
+    installPath: path.normalize(followUp.installPath),
+    mode: "symlink"
   };
   await saveLocalConfig(config);
   logger.success(`Saved local config at ~/.skillpipe/config.json`);
 
-  await installBundledSkill(answers.target, answers.customProjectPath);
+  await installBundledSkill(target, followUp.customProjectPath);
 
-  if (answers.setupRepo === "existing" && answers.repoUrl) {
-    await runRepoConnect({ url: answers.repoUrl });
+  if (repoAnswers.setupRepo === "existing" && repoAnswers.repoUrl) {
+    await runRepoConnect({ url: repoAnswers.repoUrl, force: true });
   } else {
     logger.hint("Connect a repo later with `skillpipe repo connect <url>`.");
   }
+}
+
+async function promptUntilTargetPicked(): Promise<string> {
+  const NONE = "__none__";
+  while (true) {
+    const { target } = await inquirer.prompt<{ target: string }>([
+      {
+        type: "list",
+        name: "target",
+        message: "Which agent are you setting up here?",
+        choices: [
+          { name: "— pick one (highlight then Enter) —", value: NONE },
+          { name: "Claude Code", value: "claude-code" },
+          { name: "Hermes", value: "hermes" },
+          { name: "OpenClaw", value: "openclaw" },
+          { name: "Levante", value: "levante" },
+          { name: "Custom path", value: "custom" }
+        ],
+        default: NONE
+      }
+    ]);
+    if (target !== NONE) return target;
+    logger.warn(
+      "You must pick an agent. Use the arrow keys to highlight one, then press Enter."
+    );
+  }
+}
+
+function userScopeInstallPath(target: string): string {
+  if (target === "claude-code") return defaultClaudeUserSkillsPath();
+  if (target === "hermes") return defaultHermesUserSkillsPath();
+  if (target === "openclaw") return defaultOpenclawUserSkillsPath();
+  if (target === "levante") return defaultLevanteUserSkillsPath();
+  return path.join(process.cwd(), "skills");
 }
 
 async function installBundledSkill(
@@ -162,18 +206,21 @@ async function installBundledSkill(
     installPath = defaultHermesUserSkillsPath();
   } else if (target === "openclaw") {
     installPath = defaultOpenclawProjectSkillsPath();
+  } else if (target === "levante") {
+    installPath = defaultLevanteProjectSkillsPath();
   } else {
     installPath = path.normalize(
       customProjectPath ?? path.join(process.cwd(), "skills")
     );
   }
 
-  const dest = await adapter.installSkill({
+  const result = await adapter.installSkill({
     sourceDir,
     skillName: BUNDLED_SKILL_NAME,
-    installPath
+    installPath,
+    mode: "copy"
   });
-  logger.success(`Installed ${BUNDLED_SKILL_NAME} skill at ${dest}`);
+  logger.success(`Installed ${BUNDLED_SKILL_NAME} skill at ${result.destPath}`);
 }
 
 export async function ensureInitialized(): Promise<LocalConfig> {

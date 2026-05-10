@@ -39,6 +39,14 @@ export function defaultOpenclawProjectSkillsPath(cwd: string = process.cwd()): s
   return path.join(cwd, "skills");
 }
 
+export function defaultLevanteUserSkillsPath(): string {
+  return path.join(os.homedir(), ".levante", "skills");
+}
+
+export function defaultLevanteProjectSkillsPath(cwd: string = process.cwd()): string {
+  return path.join(cwd, ".levante", "skills");
+}
+
 export const BUNDLED_SKILL_NAME = "skillpipe-cli";
 
 export function bundledSkillPath(name: string): string {

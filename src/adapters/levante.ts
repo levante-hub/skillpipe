@@ -1,10 +1,11 @@
 import path from "node:path";
-import os from "node:os";
+import { delimiter } from "node:path";
+import { access, constants } from "node:fs/promises";
 import { materializeSkill } from "../core/sync.js";
 import { listDirs, pathExists, removePath } from "../utils/fs.js";
 import {
-  defaultClaudeUserSkillsPath,
-  defaultClaudeProjectSkillsPath
+  defaultLevanteUserSkillsPath,
+  defaultLevanteProjectSkillsPath
 } from "../core/paths.js";
 import {
   TargetAdapter,
@@ -14,17 +15,17 @@ import {
   InstalledSkillSummary
 } from "./index.js";
 
-export class ClaudeCodeAdapter implements TargetAdapter {
-  readonly name = "claude-code";
+export class LevanteAdapter implements TargetAdapter {
+  readonly name = "levante";
 
   async detect(): Promise<boolean> {
-    return pathExists(path.join(os.homedir(), ".claude"));
+    return isCommandAvailable("levante");
   }
 
   getDefaultInstallPath(scope: "user" | "project" = "user"): string {
     return scope === "project"
-      ? defaultClaudeProjectSkillsPath()
-      : defaultClaudeUserSkillsPath();
+      ? defaultLevanteProjectSkillsPath()
+      : defaultLevanteUserSkillsPath();
   }
 
   async installSkill(args: InstallSkillArgs): Promise<InstallSkillResult> {
@@ -49,4 +50,21 @@ export class ClaudeCodeAdapter implements TargetAdapter {
       path: path.join(installPath, name)
     }));
   }
+}
+
+async function isCommandAvailable(name: string): Promise<boolean> {
+  const pathDirs = (process.env.PATH ?? "").split(delimiter).filter(Boolean);
+  const exts =
+    process.platform === "win32" ? [".exe", ".cmd", ".bat", ""] : [""];
+  for (const dir of pathDirs) {
+    for (const ext of exts) {
+      try {
+        await access(path.join(dir, name + ext), constants.X_OK);
+        return true;
+      } catch {
+        continue;
+      }
+    }
+  }
+  return false;
 }

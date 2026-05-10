@@ -2,12 +2,21 @@ import { SkillpipeError } from "../utils/errors.js";
 import { ClaudeCodeAdapter } from "./claude-code.js";
 import { CustomAdapter } from "./custom.js";
 import { HermesAdapter } from "./hermes.js";
+import { LevanteAdapter } from "./levante.js";
 import { OpenclawAdapter } from "./openclaw.js";
+
+export type InstallMode = "copy" | "symlink";
 
 export interface InstallSkillArgs {
   sourceDir: string;
   skillName: string;
   installPath: string;
+  mode?: InstallMode;
+}
+
+export interface InstallSkillResult {
+  destPath: string;
+  mode: InstallMode;
 }
 
 export interface RemoveSkillArgs {
@@ -24,7 +33,7 @@ export interface TargetAdapter {
   readonly name: string;
   detect(): Promise<boolean>;
   getDefaultInstallPath(scope?: "user" | "project"): string;
-  installSkill(args: InstallSkillArgs): Promise<string>;
+  installSkill(args: InstallSkillArgs): Promise<InstallSkillResult>;
   removeSkill(args: RemoveSkillArgs): Promise<void>;
   listInstalledSkills(installPath: string): Promise<InstalledSkillSummary[]>;
 }
@@ -33,6 +42,7 @@ const REGISTRY = new Map<string, TargetAdapter>();
 REGISTRY.set("claude-code", new ClaudeCodeAdapter());
 REGISTRY.set("hermes", new HermesAdapter());
 REGISTRY.set("openclaw", new OpenclawAdapter());
+REGISTRY.set("levante", new LevanteAdapter());
 REGISTRY.set("custom", new CustomAdapter());
 
 export function getAdapter(name: string): TargetAdapter {

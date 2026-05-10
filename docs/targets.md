@@ -11,6 +11,7 @@ how to lay out skill files for that specific environment.
 | `claude-code` | `~/.claude/skills/` (user) or `<project>/.claude/skills/` (project) | First-class. The CLI ships with this enabled. |
 | `hermes` | `~/.hermes/skills/` (user only — respects `HERMES_HOME`) | Hermes agent runtime. No project scope. |
 | `openclaw` | `~/.openclaw/skills/` (user, respects `OPENCLAW_STATE_DIR`) or `<workspace>/skills/` (project) | OpenClaw personal AI assistant. Auto-discovery, no manual registration. |
+| `levante` | `~/.levante/skills/` (user) or `<cwd>/.levante/skills/` (project) | Levante agent. Detected by `levante` on `PATH`. Project scope wins on name collision. |
 | `custom` | Whatever you pass via `--path` or set in config | Use for any agent that reads skills from a directory you control. |
 
 ## Choosing a target
@@ -72,6 +73,35 @@ Subsequent `skillpipe install` calls default to user scope, configurable via
 OpenClaw auto-discovers any folder containing a valid `SKILL.md`, so no extra
 registration in `openclaw.json` is needed.
 
+## Levante adapter
+
+The `levante` adapter installs skills into Levante's auto-discovered skill
+directories. Levante scans two roots in precedence order, and Skillpipe
+exposes both:
+
+- **User scope** — `~/.levante/skills/`. Available across all projects.
+- **Project scope** — `<cwd>/.levante/skills/`. Highest precedence; if a
+  project-scope skill shares the `name` of a user-scope skill, the project
+  one wins.
+
+Levante auto-discovers any first-level subdirectory containing a valid
+`SKILL.md` (same YAML contract: `name` and `description` required; `version`,
+`targets`, `tags` optional). No manifest registration needed. There is no
+environment variable override; paths are resolved strictly from the user
+home and the current working directory.
+
+`skillpipe init` writes the bundled `skillpipe-cli` skill to **project scope**
+so the agent in that workspace immediately knows how to operate the CLI.
+Subsequent `skillpipe install` calls default to user scope, configurable via
+`--path`.
+
+Detection: Skillpipe considers Levante available when the `levante` binary
+is reachable on the system `PATH`.
+
+Levante caches skills at session start, so after a fresh install or update
+restart the Levante session (or trigger a reload command if one is exposed)
+to pick up changes. Symlink mode is supported and recommended.
+
 ## Custom adapter
 
 The `custom` adapter is a generic "copy the skill folder to this path" target.
@@ -88,7 +118,6 @@ or override per-command with `--target custom --path <dir>`.
 
 Planned adapters in upcoming releases:
 
-- **Levante** — internal Levante agent runtime.
 - **OpenCode** — OpenCode IDE integration.
 
 Each adapter is a thin module under `src/adapters/`. Adding one is mostly a
@@ -98,11 +127,43 @@ registering the adapter in `src/adapters/index.ts`. See
 
 ## How install actually works
 
-For all adapters today, `install` is a **copy**. The skill folder
-(`~/.skillpipe/repos/<repo>/skills/<name>/`) is copied to the target install
-path. If the destination already exists, it's overwritten. The copy mode is
-recorded in the lockfile so `update` knows what to re-install.
+`install` runs in one of two modes, recorded per-skill in the lockfile:
 
-Symlink mode is on the v0.3 roadmap — see the project-level roadmap. With
-symlinks, edits to the source would be live in the target without an explicit
-`update`. For now, `update` is the way.
+- **`symlink` (default)** — `<installPath>/<skill>` is a symlink to
+  `~/.skillpipe/repos/<repo>/skills/<skill>`. The agent reads the symlink
+  transparently; any edit it makes lands directly in the git workspace, so
+  `skillpipe propose <skill>` picks the changes up with no extra step.
+- **`copy`** — the skill folder is copied. Safer on filesystems or platforms
+  that don't tolerate symlinks well (e.g. Windows without developer mode).
+  Trade-off: edits made in the install path are *not* reflected in the
+  workspace, so propose-from-installed has to copy them back (see below).
+
+If the destination already exists, it's overwritten in both modes.
+
+Pick the mode with `--mode copy|symlink` on `skillpipe install`. The
+configured default for each target lives in `~/.skillpipe/config.json` under
+`targets.<name>.mode` and was set during `skillpipe init`. `update` re-uses
+whatever mode is recorded for that skill in the lockfile.
+
+### Closing the edit loop with `propose`
+
+When the skill is installed in **symlink** mode, this just works:
+
+```bash
+# agent edits ~/.claude/skills/<skill>/SKILL.md
+skillpipe propose <skill> -m "tweak: ..."
+```
+
+The edit is already in the workspace, so `propose` commits and opens the PR.
+
+When the skill is installed in **copy** mode, the edits live only in the
+install path. Use `--from-installed` to copy them back into the workspace
+first:
+
+```bash
+skillpipe propose <skill> --from-installed -m "tweak: ..."
+```
+
+`propose --from-installed` is a no-op when the skill is in symlink mode (it
+just logs that the edits are already in place), so it's safe to use as a
+default in scripts.

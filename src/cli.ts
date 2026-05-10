@@ -30,8 +30,16 @@ program
 program
   .command("init")
   .description("Initialize Skillpipe on this machine.")
-  .option("-y, --yes", "accept defaults without prompting")
-  .action(wrap(async (opts: { yes?: boolean }) => runInit({ yes: opts.yes })));
+  .option("-y, --yes", "non-interactive mode; must be combined with --target")
+  .option(
+    "-t, --target <name>",
+    "agent to set up (claude-code, hermes, openclaw, levante, custom)"
+  )
+  .action(
+    wrap(async (opts: { yes?: boolean; target?: string }) =>
+      runInit({ yes: opts.yes, target: opts.target })
+    )
+  );
 
 const repo = program
   .command("repo")
@@ -42,13 +50,22 @@ repo
   .description("Connect Skillpipe to an existing GitHub repository.")
   .option("-b, --branch <name>", "branch to track locally (defaults to repo default)")
   .option("--init", "create skillpipe.json if missing")
+  .option(
+    "-f, --force",
+    "switch the connected repository even if another one is already linked"
+  )
   .action(
-    wrap(async (url: string, opts: { branch?: string; init?: boolean }) =>
-      runRepoConnect({
-        url,
-        branch: opts.branch,
-        initSkillpipe: opts.init
-      })
+    wrap(
+      async (
+        url: string,
+        opts: { branch?: string; init?: boolean; force?: boolean }
+      ) =>
+        runRepoConnect({
+          url,
+          branch: opts.branch,
+          initSkillpipe: opts.init,
+          force: opts.force
+        })
     )
   );
 
@@ -63,9 +80,44 @@ program
   .description("Install a skill (or 'all') into the configured target.")
   .option("-t, --target <name>", "target adapter (default: configured)")
   .option("-p, --path <dir>", "override install path")
+  .option(
+    "-m, --mode <mode>",
+    "install mode: 'symlink' (default) or 'copy'"
+  )
+  .option(
+    "-f, --force",
+    "overwrite local skill folders that conflict with installed names"
+  )
+  .option(
+    "--keep-local",
+    "skip skills whose name conflicts with an existing local folder"
+  )
   .action(
-    wrap(async (name: string, opts: { target?: string; path?: string }) =>
-      runInstall({ name, target: opts.target, installPath: opts.path })
+    wrap(
+      async (
+        name: string,
+        opts: {
+          target?: string;
+          path?: string;
+          mode?: string;
+          force?: boolean;
+          keepLocal?: boolean;
+        }
+      ) => {
+        if (opts.mode && opts.mode !== "copy" && opts.mode !== "symlink") {
+          throw new Error(
+            `Invalid --mode "${opts.mode}". Use "copy" or "symlink".`
+          );
+        }
+        return runInstall({
+          name,
+          target: opts.target,
+          installPath: opts.path,
+          mode: opts.mode as "copy" | "symlink" | undefined,
+          force: opts.force,
+          keepLocal: opts.keepLocal
+        });
+      }
     )
   );
 
@@ -147,10 +199,20 @@ program
 
 program
   .command("propose <name>")
-  .description("Open a Pull Request with local changes for a skill.")
-  .requiredOption("-m, --message <text>", "commit and PR title")
-  .option("--draft", "open the PR as draft")
-  .option("--branch <name>", "override the auto-generated branch name")
+  .description(
+    "Push local skill changes to the tracked branch (default) or open a Pull Request with `--pr`."
+  )
+  .requiredOption("-m, --message <text>", "commit (and PR) title")
+  .option("--pr", "open a Pull Request instead of pushing to the tracked branch")
+  .option("--draft", "open the PR as draft (requires --pr)")
+  .option(
+    "--branch <name>",
+    "override the auto-generated branch name (requires --pr)"
+  )
+  .option(
+    "-i, --from-installed",
+    "copy edits from the installed path back into the workspace before proposing (use this when the skill is in copy mode and the agent edited the installed copy)"
+  )
   .option(
     "--allow-secret-risk",
     "DANGER: bypass secret scanning (not recommended)"
@@ -161,16 +223,20 @@ program
         name: string,
         opts: {
           message: string;
+          pr?: boolean;
           draft?: boolean;
           branch?: string;
+          fromInstalled?: boolean;
           allowSecretRisk?: boolean;
         }
       ) =>
         runPropose({
           name,
           message: opts.message,
+          pr: opts.pr,
           draft: opts.draft,
           branch: opts.branch,
+          fromInstalled: opts.fromInstalled,
           allowSecretRisk: opts.allowSecretRisk
         })
     )

@@ -6,6 +6,7 @@ export const InstalledSkillSchema = z.object({
   target: z.string(),
   installPath: z.string(),
   path: z.string(),
+  mode: z.enum(["copy", "symlink"]).default("copy"),
   installedAt: z.string()
 });
 

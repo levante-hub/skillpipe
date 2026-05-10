@@ -31,12 +31,49 @@ export interface RepoConnectOptions {
   url: string;
   branch?: string;
   initSkillpipe?: boolean;
+  force?: boolean;
 }
 
 export async function runRepoConnect(opts: RepoConnectOptions): Promise<void> {
   await ensureGitAvailable();
 
   const parsed = parseGithubUrl(opts.url);
+  const newFullName = `${parsed.owner}/${parsed.name}`;
+  const existing = await loadOrInitLocalConfig();
+
+  if (existing.defaultRepo) {
+    const sameRepo = existing.defaultRepo === newFullName;
+    const branchChange = opts.branch && opts.branch !== existing.defaultBranch;
+
+    if (sameRepo && !branchChange) {
+      logger.success(
+        `Already connected to ${existing.defaultRepo} (branch ${existing.defaultBranch}).`
+      );
+      logger.hint(
+        "Run `skillpipe list` to see available skills, or `skillpipe update` to pull the latest changes."
+      );
+      return;
+    }
+
+    if (!sameRepo && !opts.force) {
+      throw new SkillpipeError(
+        "REPO_ALREADY_CONNECTED",
+        `Already connected to ${existing.defaultRepo}. Refusing to switch to ${newFullName}.`,
+        "Pass --force to switch, or run `skillpipe status` to inspect the current connection."
+      );
+    }
+
+    if (!sameRepo) {
+      logger.warn(
+        `Switching connected repository: ${existing.defaultRepo} → ${newFullName}.`
+      );
+    } else {
+      logger.info(
+        `Already connected to ${existing.defaultRepo}; switching branch ${existing.defaultBranch} → ${opts.branch}.`
+      );
+    }
+  }
+
   const workspace = workspaceForRepo(parsed.name);
   const workspaceExists = await pathExists(workspace);
 

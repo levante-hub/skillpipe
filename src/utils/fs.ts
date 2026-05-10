@@ -1,4 +1,5 @@
 import fse from "fs-extra";
+import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import fg from "fast-glob";
@@ -46,6 +47,25 @@ export async function copyDir(src: string, dest: string): Promise<void> {
     errorOnExist: false,
     dereference: false
   });
+}
+
+export async function symlinkDir(src: string, dest: string): Promise<void> {
+  const absSource = path.resolve(expandHome(src));
+  const absDest = expandHome(dest);
+  await fse.ensureDir(path.dirname(absDest));
+  if (await fse.pathExists(absDest)) {
+    await fse.remove(absDest);
+  }
+  await fs.symlink(absSource, absDest, "dir");
+}
+
+export async function isSymlink(p: string): Promise<boolean> {
+  try {
+    const stat = await fs.lstat(expandHome(p));
+    return stat.isSymbolicLink();
+  } catch {
+    return false;
+  }
 }
 
 export async function removePath(p: string): Promise<void> {
