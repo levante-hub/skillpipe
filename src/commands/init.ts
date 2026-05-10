@@ -17,6 +17,9 @@ import {
 import {
   defaultClaudeUserSkillsPath,
   defaultClaudeProjectSkillsPath,
+  defaultHermesUserSkillsPath,
+  defaultOpenclawUserSkillsPath,
+  defaultOpenclawProjectSkillsPath,
   bundledSkillPath,
   BUNDLED_SKILL_NAME,
   SKILLPIPE_HOME,
@@ -94,6 +97,8 @@ export async function runInit(opts: InitOptions = {}): Promise<void> {
       message: "Which agent are you setting up here?",
       choices: [
         { name: "Claude Code", value: "claude-code" },
+        { name: "Hermes", value: "hermes" },
+        { name: "OpenClaw", value: "openclaw" },
         { name: "Custom path", value: "custom" }
       ],
       default: "claude-code"
@@ -111,10 +116,12 @@ export async function runInit(opts: InitOptions = {}): Promise<void> {
       type: "input",
       name: "installPath",
       message: "Install path:",
-      default: (a: { target: string; customProjectPath?: string }) =>
-        a.target === "claude-code"
-          ? defaultClaudeUserSkillsPath()
-          : a.customProjectPath ?? path.join(process.cwd(), "skills")
+      default: (a: { target: string; customProjectPath?: string }) => {
+        if (a.target === "claude-code") return defaultClaudeUserSkillsPath();
+        if (a.target === "hermes") return defaultHermesUserSkillsPath();
+        if (a.target === "openclaw") return defaultOpenclawUserSkillsPath();
+        return a.customProjectPath ?? path.join(process.cwd(), "skills");
+      }
     }
   ]);
 
@@ -148,10 +155,18 @@ async function installBundledSkill(
   }
 
   const adapter = getAdapter(target);
-  const installPath =
-    target === "claude-code"
-      ? defaultClaudeProjectSkillsPath()
-      : path.normalize(customProjectPath ?? path.join(process.cwd(), "skills"));
+  let installPath: string;
+  if (target === "claude-code") {
+    installPath = defaultClaudeProjectSkillsPath();
+  } else if (target === "hermes") {
+    installPath = defaultHermesUserSkillsPath();
+  } else if (target === "openclaw") {
+    installPath = defaultOpenclawProjectSkillsPath();
+  } else {
+    installPath = path.normalize(
+      customProjectPath ?? path.join(process.cwd(), "skills")
+    );
+  }
 
   const dest = await adapter.installSkill({
     sourceDir,

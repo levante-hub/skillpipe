@@ -19,6 +19,26 @@ export function defaultClaudeProjectSkillsPath(cwd: string = process.cwd()): str
   return path.join(cwd, ".claude", "skills");
 }
 
+export function defaultHermesUserSkillsPath(): string {
+  const hermesHome = process.env.HERMES_HOME?.trim();
+  const home = hermesHome && hermesHome.length > 0
+    ? hermesHome
+    : path.join(os.homedir(), ".hermes");
+  return path.join(home, "skills");
+}
+
+export function defaultOpenclawUserSkillsPath(): string {
+  const stateDir = process.env.OPENCLAW_STATE_DIR?.trim();
+  const home = stateDir && stateDir.length > 0
+    ? stateDir
+    : path.join(os.homedir(), ".openclaw");
+  return path.join(home, "skills");
+}
+
+export function defaultOpenclawProjectSkillsPath(cwd: string = process.cwd()): string {
+  return path.join(cwd, "skills");
+}
+
 export const BUNDLED_SKILL_NAME = "skillpipe-cli";
 
 export function bundledSkillPath(name: string): string {

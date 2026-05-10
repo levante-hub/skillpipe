@@ -1,6 +1,8 @@
 import { SkillpipeError } from "../utils/errors.js";
 import { ClaudeCodeAdapter } from "./claude-code.js";
 import { CustomAdapter } from "./custom.js";
+import { HermesAdapter } from "./hermes.js";
+import { OpenclawAdapter } from "./openclaw.js";
 
 export interface InstallSkillArgs {
   sourceDir: string;
@@ -29,6 +31,8 @@ export interface TargetAdapter {
 
 const REGISTRY = new Map<string, TargetAdapter>();
 REGISTRY.set("claude-code", new ClaudeCodeAdapter());
+REGISTRY.set("hermes", new HermesAdapter());
+REGISTRY.set("openclaw", new OpenclawAdapter());
 REGISTRY.set("custom", new CustomAdapter());
 
 export function getAdapter(name: string): TargetAdapter {
