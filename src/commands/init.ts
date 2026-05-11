@@ -66,8 +66,9 @@ export async function runInit(opts: InitOptions = {}): Promise<void> {
     logger.hint("Run `gh auth login` before connecting a repository.");
   }
 
+  const available = availableAdapters();
+
   if (opts.yes) {
-    const available = availableAdapters();
     if (!opts.target) {
       throw new SkillpipeError(
         "TARGET_UNKNOWN",
@@ -89,6 +90,14 @@ export async function runInit(opts: InitOptions = {}): Promise<void> {
     logger.success(`Initialized with target "${opts.target}".`);
     logger.hint("Connect a repo with `skillpipe repo connect <url>`.");
     return;
+  }
+
+  if (!process.stdin.isTTY) {
+    throw new SkillpipeError(
+      "INIT_NOT_INTERACTIVE",
+      `\`skillpipe init\` is interactive but stdin is not a TTY (likely running under an AI agent or CI).`,
+      `Re-run non-interactively: \`skillpipe init --yes --target <name>\`. Available targets: ${available.join(", ")}.`
+    );
   }
 
   const repoAnswers = await inquirer.prompt<{

@@ -19,6 +19,7 @@ export type SkillpipeErrorCode =
   | "WORKSPACE_DIRTY"
   | "LOCKFILE_INVALID"
   | "USER_ABORTED"
+  | "INIT_NOT_INTERACTIVE"
   | "UNKNOWN";
 
 export class SkillpipeError extends Error {
