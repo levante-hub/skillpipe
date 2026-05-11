@@ -1,6 +1,6 @@
 ---
 name: skillpipe-cli
-version: 0.6.1
+version: 0.7.0
 description: Operate the Skillpipe CLI to install, update, validate and propose AI agent skills from a Git-backed source of truth.
 author: Skillpipe
 tags: [skillpipe, cli, skills, git, github, claude-code, hermes, openclaw, levante]
