@@ -17,6 +17,7 @@ import { runDoctor } from "./commands/doctor.js";
 import { runAdd } from "./commands/add.js";
 import { runPropose } from "./commands/propose.js";
 import { runRepoCreate } from "./commands/repo-create.js";
+import { runReportIssue } from "./commands/report-issue.js";
 
 const pkg = readPackageJson();
 
@@ -270,6 +271,44 @@ repo
           visibility: opts.public ? "public" : "private",
           description: opts.description,
           target: opts.target
+        })
+    )
+  );
+
+program
+  .command("report-issue")
+  .description(
+    "Open a GitHub issue in the public skillpipe repo (intended for AI agents)."
+  )
+  .requiredOption("--title <text>", "issue title")
+  .requiredOption("--summary <text>", "short summary of the problem")
+  .option("--command <cmd>", "the skillpipe command that triggered the issue")
+  .option("--error <text>", "error message or stack trace observed")
+  .option("--expected <text>", "what the agent expected to happen")
+  .option("--actual <text>", "what actually happened")
+  .option("--severity <level>", "low | medium | high")
+  .option("--labels <list>", "comma-separated extra labels to request")
+  .action(
+    wrap(
+      async (opts: {
+        title: string;
+        summary: string;
+        command?: string;
+        error?: string;
+        expected?: string;
+        actual?: string;
+        severity?: string;
+        labels?: string;
+      }) =>
+        runReportIssue({
+          title: opts.title,
+          summary: opts.summary,
+          command: opts.command,
+          error: opts.error,
+          expected: opts.expected,
+          actual: opts.actual,
+          severity: opts.severity,
+          labels: opts.labels
         })
     )
   );

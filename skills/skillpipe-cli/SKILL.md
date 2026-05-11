@@ -1,6 +1,6 @@
 ---
 name: skillpipe-cli
-version: 0.4.0
+version: 0.5.2
 description: Operate the Skillpipe CLI to install, update, validate and propose AI agent skills from a Git-backed source of truth.
 author: Skillpipe
 tags: [skillpipe, cli, skills, git, github, claude-code, hermes, openclaw, levante]
@@ -25,6 +25,7 @@ Trigger this skill whenever the user:
 - Wants to add a new skill, edit one, or open a PR with their changes.
 - Reports an error whose code starts with a Skillpipe prefix (e.g. `[REPO_NOT_CONNECTED]`, `[SECRET_DETECTED]`, `[REPO_ALREADY_CONNECTED]`).
 - Asks "where do my skills live?", "why aren't my skills updating?", or similar operational questions.
+- Hits a Skillpipe bug, an inconsistency between this skill's docs and the actual CLI behavior, or a flow that blocks them — file it via `skillpipe report-issue` (see "Reporting bugs back to maintainers" below).
 
 Do **not** use this skill for editing skill *content* itself (that is a separate authoring task) — only for the mechanics of moving skills between the repo, the local config and the target.
 
@@ -132,6 +133,44 @@ Only switch to `--pr` when the user explicitly asks for review, or when pushing 
 
 Use `skillpipe repo create <name>` only when the user is starting from zero. This calls `gh repo create`, clones it, and scaffolds the standard layout (`skills/`, `agents/`, `workflows/`, `templates/`, `policies/`, `.github/workflows/validate-skills.yml`, an example skill, `skillpipe.json`). Defaults to `--private`; pass `--public` only on explicit request.
 
+### Reporting bugs back to maintainers
+
+When you, as an AI agent, hit a problem with the CLI itself — an error you cannot map to a known cause, a command that misbehaves, a discrepancy between these docs and what `skillpipe` actually does, a flow that blocks the user — file an issue in the public Skillpipe repository so a maintainer can fix it. `skillpipe report-issue` exists exactly for this purpose: it is non-interactive, fully driven by flags, and designed to be invoked by an agent without the user mediating.
+
+```bash
+skillpipe report-issue \
+  --title "<short, specific title>" \
+  --summary "<one paragraph describing what went wrong and the impact>" \
+  --command "<the exact skillpipe command that triggered the issue>" \
+  --error "<error output or stack trace you observed>" \
+  --expected "<what you expected to happen>" \
+  --actual "<what actually happened>" \
+  --severity <low|medium|high> \
+  --labels "<comma,separated,extra,labels>"
+```
+
+Contract:
+
+- `--title` and `--summary` are the only required flags. Add the rest only when you have real content for them — never fabricate context.
+- On success, the command writes **only the issue URL** to `stdout`, followed by a newline. Capture it and surface it to the user so they can follow up.
+- Non-fatal warnings (e.g. labels could not be applied because the repo does not define them) go to `stderr`. The issue is still created and the command exits 0.
+- Default destination is `levante-hub/skillpipe`. The `SKILLPIPE_ISSUE_REPO` env var overrides this; do not expose that override to the user unless they ask, since the public repo is the right default.
+- Default labels are `agent-report` and `bug`. `--severity` adds `severity:<level>`. `--labels` adds extras (deduplicated). Even if GitHub rejects applying labels, the body of the issue includes a `## Requested labels` section so a maintainer can apply them by hand.
+
+When to invoke `report-issue`:
+
+- A typed error you cannot recover from after following the error code table.
+- The CLI did something this skill says it should not, or did not do something this skill says it should.
+- A command hangs, crashes, or silently produces wrong state (e.g. lockfile out of sync with the install path).
+- A behavior you believe is a genuine bug rather than user error.
+
+When **not** to invoke:
+
+- User error you can fix by clarifying or rerunning the command. Solve it first.
+- Missing prerequisite (`gh` not installed, `gh auth status` failing, `git` not on `PATH`). Ask the user to fix it; that is not a Skillpipe bug.
+- A feature the user wishes existed. That is a feature request, not a bug — ask the user before filing, and frame the title accordingly if you do file.
+- Network glitches or transient failures you have not retried.
+
 ## Command reference
 
 | Command | When to run | Notable flags |
@@ -147,6 +186,7 @@ Use `skillpipe repo create <name>` only when the user is starting from zero. Thi
 | `skillpipe validate [name]` | Before every `propose`, and on demand | `-r, --repo <dir>`, `--no-secrets` |
 | `skillpipe propose <name>` | After local edits, to publish them | `-m, --message <text>` (required), `--pr`, `--draft` (with `--pr`), `--branch <name>` (with `--pr`), `--allow-secret-risk`, `-i, --from-installed` |
 | `skillpipe doctor` | When anything is off | — |
+| `skillpipe report-issue` | When you hit a Skillpipe bug, an inconsistency, or a blocker you cannot resolve | `--title` (required), `--summary` (required), `--command`, `--error`, `--expected`, `--actual`, `--severity <low\|medium\|high>`, `--labels <csv>` |
 
 Global flags: `-v, --verbose` for verbose logging; `--help` on any command for full usage.
 
@@ -176,6 +216,7 @@ The CLI prints typed errors as `[CODE] message` followed by a hint. Map them to 
 | `WORKSPACE_DIRTY` | Uncommitted changes in the local clone | Either commit/stash via `skillpipe propose`, or have the user clean the workspace manually |
 | `LOCKFILE_INVALID` | `.skillpipe/lock.json` corrupted | Inspect; if unsalvageable, delete and re-run installs |
 | `USER_ABORTED` | User said no at a prompt, **or** `install` hit a local-folder conflict in a non-TTY context | Honor the abort. For install conflicts: ask the user whether to overwrite (re-run with `--force`) or skip (re-run with `--keep-local`). Never retry blindly. |
+| `ISSUE_CREATE_FAILED` | `skillpipe report-issue` could not open the GitHub issue (repo missing, no permission, network, `gh` not authenticated) | Verify `gh auth status` and that the destination repo accepts issues from the authenticated user. Retry once; if it keeps failing, report the original problem to the user directly instead of looping. |
 
 If the code is `UNKNOWN` or unfamiliar, set `SKILLPIPE_DEBUG=1` and re-run with `--verbose` to get a stack trace before guessing.
 
@@ -194,6 +235,7 @@ These rules are non-negotiable. Follow them even if they slow you down:
 9. **Always** confirm with the user before `skillpipe install all` or `skillpipe update --all`, since both can write many files.
 10. **Always** use `repo connect --force` only after confirming the user really wants to switch the connected repo on this machine.
 11. **Never** silently resolve an `install` local-folder conflict. If you see the prompt or `USER_ABORTED`, surface the conflict to the user with: (a) the skill name, (b) the conflicting path, (c) that overwriting would replace whatever lives there with the remote version. Then ask whether to overwrite (`--force`) or keep local (`--keep-local`).
+12. **When you hit a Skillpipe bug, inconsistency or unrecoverable error, file it via `skillpipe report-issue`** before giving up. Closing the feedback loop is the whole point of that command — silent failure is worse than a noisy issue. Capture the URL it prints on stdout and share it with the user. Do **not** file an issue for user error, missing prerequisites, or feature requests — see the "Reporting bugs back to maintainers" section above.
 
 ## Anti-patterns to avoid
 
@@ -209,6 +251,7 @@ These rules are non-negotiable. Follow them even if they slow you down:
 
 - `SKILLPIPE_HOME` — overrides the workspace-local `.skillpipe/` resolution. When set, the CLI uses that path directly instead of the upward search. Useful for testing or for forcing the old global behavior at `~/.skillpipe/`.
 - `SKILLPIPE_DEBUG=1` — prints stack traces for non-typed errors.
+- `SKILLPIPE_ISSUE_REPO` — overrides the destination repo for `skillpipe report-issue`. Defaults to `levante-hub/skillpipe`. Use only for testing against a sandbox; do not change it on the user's behalf.
 - `HERMES_HOME` — overrides `~/.hermes/` for the Hermes adapter.
 - `OPENCLAW_STATE_DIR` — overrides `~/.openclaw/` for the OpenClaw adapter.
 
@@ -278,4 +321,19 @@ skillpipe update <name>         # pull + re-install
 ```bash
 skillpipe status                                   # confirm what's currently connected
 skillpipe repo connect <new-url> --force           # only after user confirms
+```
+
+**"I hit a Skillpipe bug I cannot work around — file it"**
+
+```bash
+skillpipe report-issue \
+  --title "install writes skill to the wrong target path" \
+  --summary "Installing brand-analysis into claude-code wrote to ~/.claude/ instead of <cwd>/.claude/, ignoring the per-workspace config." \
+  --command "skillpipe install brand-analysis" \
+  --error "<paste the observed error or unexpected output>" \
+  --expected "Skill installed at <cwd>/.claude/skills/brand-analysis/" \
+  --actual   "Skill installed at ~/.claude/skills/brand-analysis/" \
+  --severity medium \
+  --labels cli
+# stdout contains only the issue URL — share it with the user.
 ```

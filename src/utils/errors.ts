@@ -20,6 +20,7 @@ export type SkillpipeErrorCode =
   | "LOCKFILE_INVALID"
   | "USER_ABORTED"
   | "INIT_NOT_INTERACTIVE"
+  | "ISSUE_CREATE_FAILED"
   | "UNKNOWN";
 
 export class SkillpipeError extends Error {
