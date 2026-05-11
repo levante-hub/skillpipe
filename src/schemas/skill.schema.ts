@@ -12,7 +12,7 @@ export const SkillMetadataSchema = z.object({
     .string()
     .regex(/^\d+\.\d+\.\d+$/, "Version must be semver (e.g. 0.1.0)")
     .default("0.1.0"),
-  description: z.string().min(1).max(500),
+  description: z.string().min(1).max(1000),
   author: z.string().optional(),
   tags: z.array(z.string()).default([]),
   targets: z.array(z.string()).default([])
