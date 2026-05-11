@@ -88,14 +88,41 @@ export async function checkoutTrackingBranch(
 }
 
 export async function pullBranch(cwd: string, branch: string): Promise<void> {
-  const r = await run("git", ["pull", "origin", branch, "--ff-only"], { cwd });
+  const target = `origin/${branch}`;
+  const r = await run("git", ["merge", "--ff-only", target], { cwd });
   if (r.exitCode !== 0) {
+    const detail = r.stderr.trim() || r.stdout.trim();
     throw new SkillpipeError(
       "GIT_OPERATION_FAILED",
-      `git pull failed: ${r.stderr.trim()}`,
-      "Resolve the conflict manually in the workspace, then retry."
+      `Failed to fast-forward ${branch} to ${target}: ${detail}`,
+      fastForwardHint(branch, detail)
     );
   }
+}
+
+function fastForwardHint(branch: string, detail: string): string {
+  const lower = detail.toLowerCase();
+
+  if (
+    lower.includes("not possible to fast-forward") ||
+    lower.includes("would be overwritten") ||
+    lower.includes("local changes") ||
+    lower.includes("please commit your changes") ||
+    lower.includes("merge conflict")
+  ) {
+    return "Local changes are blocking the update. Commit, stash, or discard them in the workspace, then retry.";
+  }
+
+  if (
+    lower.includes("not something we can merge") ||
+    lower.includes("unknown revision") ||
+    lower.includes("bad revision") ||
+    lower.includes("not a commit")
+  ) {
+    return `The remote tracking ref for ${branch} is not available locally. Run \`git fetch --all --prune\` in the workspace and confirm that origin/${branch} exists.`;
+  }
+
+  return "Inspect the repository state in the workspace and retry once the branch can be fast-forwarded cleanly.";
 }
 
 export async function currentCommit(cwd: string): Promise<string> {
