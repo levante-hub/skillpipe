@@ -1,9 +1,9 @@
 import { logger } from "../utils/logger.js";
 import { which } from "../utils/shell.js";
 import {
-  CONFIG_PATH,
-  LOCK_PATH,
-  REPOS_DIR,
+  configPath,
+  lockPath,
+  reposDir,
   workspaceForRepo
 } from "../core/paths.js";
 import { ghAuthStatus } from "../core/github.js";
@@ -41,7 +41,7 @@ export async function runDoctor(): Promise<{ failures: number }> {
 
   const cfgExists = await localConfigExists();
   checks.push({
-    label: `local config exists (${CONFIG_PATH})`,
+    label: `local config exists (${configPath()})`,
     ok: cfgExists,
     hint: cfgExists ? undefined : "Run `skillpipe init`"
   });
@@ -83,14 +83,15 @@ export async function runDoctor(): Promise<{ failures: number }> {
 
   const lock = await loadLockfile().catch(() => null);
   checks.push({
-    label: `lockfile readable (${LOCK_PATH})`,
+    label: `lockfile readable (${lockPath()})`,
     ok: lock !== null,
     hint: lock ? undefined : "Delete the file and re-run install"
   });
 
+  const repos = reposDir();
   checks.push({
-    label: `repos cache (${REPOS_DIR})`,
-    ok: await pathExists(REPOS_DIR)
+    label: `repos cache (${repos})`,
+    ok: await pathExists(repos)
   });
 
   let failures = 0;

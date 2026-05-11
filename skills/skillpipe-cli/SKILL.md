@@ -1,6 +1,6 @@
 ---
 name: skillpipe-cli
-version: 0.3.0
+version: 0.4.0
 description: Operate the Skillpipe CLI to install, update, validate and propose AI agent skills from a Git-backed source of truth.
 author: Skillpipe
 tags: [skillpipe, cli, skills, git, github, claude-code, hermes, openclaw, levante]
@@ -32,9 +32,9 @@ Do **not** use this skill for editing skill *content* itself (that is a separate
 
 Skillpipe has four moving parts. Hold all four in mind before running any command:
 
-1. **Local config** at `~/.skillpipe/config.json` — which repo is connected, which target adapter is active, default install path, default install mode.
-2. **Lockfile** at `~/.skillpipe/lock.json` — per-skill record of `{version, commit, target, installPath, path, mode, installedAt}`. The `mode` field is `symlink` or `copy`.
-3. **Cloned workspace** at `~/.skillpipe/repos/<name>` — the actual git checkout of the skills repo. This is the source the CLI reads from.
+1. **Local config** at `<workspace>/.skillpipe/config.json` — which repo is connected, which target adapter is active, default install path, default install mode. Always **per-workspace** since v0.5.0: `skillpipe init` creates `.skillpipe/` in the current working directory, and every later command resolves the home by walking up from `cwd` to the nearest `.skillpipe/` (with `SKILLPIPE_HOME` env var as a last-resort override). Two workspaces on the same machine = two independent configs.
+2. **Lockfile** at `<workspace>/.skillpipe/lock.json` — per-skill record of `{version, commit, target, installPath, path, mode, installedAt}`. The `mode` field is `symlink` or `copy`.
+3. **Cloned workspace** at `<workspace>/.skillpipe/repos/<name>` — the actual git checkout of the skills repo. This is the source the CLI reads from. Each workspace gets its own clone.
 4. **Target** — where skills are *installed* so the agent can read them. Each adapter knows the directory its agent scans:
    - `claude-code` → `~/.claude/skills/` (user) or `<cwd>/.claude/skills/` (project)
    - `hermes` → `~/.hermes/skills/` (user only; respects `HERMES_HOME`)
@@ -46,7 +46,7 @@ A skill is a folder under `skills/<name>/` containing at minimum a `SKILL.md` wi
 
 ### Install modes
 
-- **`symlink` (default)** — `<installPath>/<skill>` is a symlink to `~/.skillpipe/repos/<repo>/skills/<skill>`. Any edit the agent makes lands directly in the git workspace, so `propose` picks it up with no extra step.
+- **`symlink` (default)** — `<installPath>/<skill>` is a symlink to `<workspace>/.skillpipe/repos/<repo>/skills/<skill>`. Any edit the agent makes lands directly in the git workspace, so `propose` picks it up with no extra step.
 - **`copy`** — the skill folder is duplicated. Safer on Windows without developer mode. Edits made in the install path are *not* reflected in the workspace; use `propose --from-installed` to copy them back before proposing.
 
 ### Install conflicts (local folder vs remote skill)
@@ -88,7 +88,7 @@ This avoids the most common failure mode: writing to a target the user did not e
 Run these commands in order. Stop and report the failure if any step errors.
 
 1. `skillpipe init` — interactive; you **must** pick an agent explicitly (no default). For CI/scripts use `skillpipe init --yes --target <name>` — `--yes` alone errors out and lists available targets.
-2. `skillpipe repo connect <https-or-ssh-url>` — clones the repo into `~/.skillpipe/repos/<name>` and tracks the default branch. Add `--branch <name>` only if the user names a non-default branch. Add `--init` only when the repo is brand new and lacks a `skillpipe.json`. If the machine is already connected to a different repo the command refuses unless you pass `--force`.
+2. `skillpipe repo connect <https-or-ssh-url>` — clones the repo into `<workspace>/.skillpipe/repos/<name>` and tracks the default branch. Add `--branch <name>` only if the user names a non-default branch. Add `--init` only when the repo is brand new and lacks a `skillpipe.json`. If the machine is already connected to a different repo the command refuses unless you pass `--force`.
 3. `skillpipe list` — confirm the expected skills appear.
 4. `skillpipe install <name>` for the skills the user wants, or `skillpipe install all` if they want everything. Pass `--mode copy` only if symlinks are unsupported on this filesystem.
 
@@ -105,8 +105,8 @@ There are two viable flows. Pick based on where the user wants to work.
 
 **Flow A — directly in the connected workspace (classic):**
 
-1. `skillpipe add <name> -d "<short description>"` — scaffolds `skills/<name>/SKILL.md` inside the cloned workspace at `~/.skillpipe/repos/<repo>/`.
-2. Edit `~/.skillpipe/repos/<repo>/skills/<name>/SKILL.md` — fill in goal, when-to-use, instructions. Keep the frontmatter `name` exactly equal to the folder name.
+1. `skillpipe add <name> -d "<short description>"` — scaffolds `skills/<name>/SKILL.md` inside the cloned workspace at `<workspace>/.skillpipe/repos/<repo>/`.
+2. Edit `<workspace>/.skillpipe/repos/<repo>/skills/<name>/SKILL.md` — fill in goal, when-to-use, instructions. Keep the frontmatter `name` exactly equal to the folder name.
 3. `skillpipe validate <name>` — fix any issues before proposing.
 4. `skillpipe propose <name> -m "feat: <name> skill"` — commits and pushes to the tracked branch.
 
@@ -126,7 +126,7 @@ Only switch to `--pr` when the user explicitly asks for review, or when pushing 
 ### Contributing changes to an existing skill
 
 - **Symlink mode (default)** — Edit the skill at its install path (e.g. `~/.claude/skills/<name>/SKILL.md`). Because it's a symlink, edits land directly in the workspace. Then run `skillpipe validate <name>` and `skillpipe propose <name> -m "..."`.
-- **Copy mode** — Edits to the install path do not reach the workspace clone. Either edit inside `~/.skillpipe/repos/<repo>/skills/<name>/` directly, or run `skillpipe propose <name> --from-installed -m "..."` to copy the install-path edits back into the workspace before pushing.
+- **Copy mode** — Edits to the install path do not reach the workspace clone. Either edit inside `<workspace>/.skillpipe/repos/<repo>/skills/<name>/` directly, or run `skillpipe propose <name> --from-installed -m "..."` to copy the install-path edits back into the workspace before pushing.
 
 ### Creating a fresh skills repo
 
@@ -156,13 +156,13 @@ The CLI prints typed errors as `[CODE] message` followed by a hint. Map them to 
 
 | Code | Likely cause | Action |
 |------|--------------|--------|
-| `CONFIG_NOT_FOUND` | `~/.skillpipe/config.json` does not exist | Run `skillpipe init` |
+| `CONFIG_NOT_FOUND` | `.skillpipe/config.json` not found upward from `cwd` | Run `skillpipe init` in this workspace |
 | `CONFIG_INVALID` | Config file is corrupted or hand-edited badly | Inspect the file; if unsalvageable, re-run `skillpipe init` |
 | `REPO_NOT_CONNECTED` | No repo registered in config | Run `skillpipe repo connect <url>` |
 | `REPO_NOT_FOUND` | Local clone is missing | Re-run `skillpipe repo connect <url>` |
 | `REPO_ALREADY_CONNECTED` | A different repo is already connected on this machine | Confirm intent with the user, then re-run with `--force` |
 | `REPO_CLONE_FAILED` | Network, auth or URL problem | Verify URL and `gh auth status`; retry |
-| `REPO_REMOTE_MISMATCH` | Local clone points at a different remote than config expects | Stop. Ask the user before mutating; usually means a stale `~/.skillpipe/repos/<name>` from a previous repo |
+| `REPO_REMOTE_MISMATCH` | Local clone points at a different remote than config expects | Stop. Ask the user before mutating; usually means a stale `<workspace>/.skillpipe/repos/<name>` from a previous repo. Resolve by removing the stale clone, then re-running `skillpipe repo connect`. |
 | `SKILL_NOT_FOUND` | Name typo, skill not in repo, and no matching folder in cwd to adopt | `skillpipe list` to see actual names |
 | `SKILL_INVALID` | Frontmatter or body fails schema | Run `skillpipe validate <name>` for details |
 | `VALIDATION_FAILED` | One or more validators failed | Re-run validate, fix the issues it reports |
@@ -174,7 +174,7 @@ The CLI prints typed errors as `[CODE] message` followed by a hint. Map them to 
 | `GIT_NOT_AVAILABLE` | `git` not on `PATH` | Tell the user to install git |
 | `GIT_OPERATION_FAILED` | Underlying `git` command failed | Read the underlying message; fix and retry |
 | `WORKSPACE_DIRTY` | Uncommitted changes in the local clone | Either commit/stash via `skillpipe propose`, or have the user clean the workspace manually |
-| `LOCKFILE_INVALID` | `~/.skillpipe/lock.json` corrupted | Inspect; if unsalvageable, delete and re-run installs |
+| `LOCKFILE_INVALID` | `.skillpipe/lock.json` corrupted | Inspect; if unsalvageable, delete and re-run installs |
 | `USER_ABORTED` | User said no at a prompt, **or** `install` hit a local-folder conflict in a non-TTY context | Honor the abort. For install conflicts: ask the user whether to overwrite (re-run with `--force`) or skip (re-run with `--keep-local`). Never retry blindly. |
 
 If the code is `UNKNOWN` or unfamiliar, set `SKILLPIPE_DEBUG=1` and re-run with `--verbose` to get a stack trace before guessing.
@@ -183,11 +183,11 @@ If the code is `UNKNOWN` or unfamiliar, set `SKILLPIPE_DEBUG=1` and re-run with 
 
 These rules are non-negotiable. Follow them even if they slow you down:
 
-1. **Never** edit `~/.skillpipe/config.json` or `~/.skillpipe/lock.json` by hand. Always go through the CLI.
-2. **Never** call `git push` from inside `~/.skillpipe/repos/<name>` directly. Always go through `skillpipe propose` so validation, lockfile updates and adoption fire. By default `propose` pushes to the tracked branch; switch to `--pr` only when the user wants review.
+1. **Never** edit `<workspace>/.skillpipe/config.json` or `<workspace>/.skillpipe/lock.json` by hand. Always go through the CLI.
+2. **Never** call `git push` from inside `<workspace>/.skillpipe/repos/<name>` directly. Always go through `skillpipe propose` so validation, lockfile updates and adoption fire. By default `propose` pushes to the tracked branch; switch to `--pr` only when the user wants review.
 3. **Never** pass `--allow-secret-risk` unprompted. If the validator flags a secret, the secret must be removed from the file. Period.
 4. **Never** run `gh auth login` on the user's behalf — it is interactive. Ask the user to run it themselves (suggest the `! gh auth login` shortcut if they are inside Claude Code).
-5. **Never** delete `~/.skillpipe/repos/<name>` to "fix" a problem before reading the error and trying `skillpipe doctor`. That folder may contain uncommitted local edits.
+5. **Never** delete `<workspace>/.skillpipe/repos/<name>` to "fix" a problem before reading the error and trying `skillpipe doctor`. That folder may contain uncommitted local edits.
 6. **Never** pick an agent for the user in `skillpipe init` — it always requires an explicit choice. If the user wants non-interactive, use `--yes --target <name>`.
 7. **Always** run `skillpipe validate <name>` immediately before `skillpipe propose <name>`.
 8. **Always** prefer `--dry-run` on `update` when the change set is large or when the user is uncertain.
@@ -201,13 +201,13 @@ These rules are non-negotiable. Follow them even if they slow you down:
 - Telling the user "I installed the skill" after only running `skillpipe add` — `add` scaffolds a file in the *repo*, it does not install anything into the target.
 - Treating `skillpipe update` as idempotent across machines: each machine has its own lockfile. Updating on machine A does not propagate to machine B until machine B also runs `update`.
 - Editing the *installed copy* of a skill in **copy mode** and expecting `propose` to pick it up — it won't. Either edit in the workspace clone, or pass `--from-installed`. (In symlink mode, editing the install path *is* editing the workspace, so this is fine.)
-- Suggesting `git push` from inside `~/.skillpipe/repos/<name>` — use `skillpipe propose` so validation runs and (optionally) a PR is opened.
+- Suggesting `git push` from inside `<workspace>/.skillpipe/repos/<name>` — use `skillpipe propose` so validation runs and (optionally) a PR is opened.
 - Passing `--force` to `install` without telling the user first that a local folder will be overwritten. The conflict prompt exists to protect their work.
 - Trying to bypass the explicit target choice in `init` by guessing or scripting around it. The forced choice exists because silent defaults previously caused skills to land in the wrong adapter's directory.
 
 ## Useful environment variables
 
-- `SKILLPIPE_HOME` — overrides `~/.skillpipe/` (rarely needed; useful for testing).
+- `SKILLPIPE_HOME` — overrides the workspace-local `.skillpipe/` resolution. When set, the CLI uses that path directly instead of the upward search. Useful for testing or for forcing the old global behavior at `~/.skillpipe/`.
 - `SKILLPIPE_DEBUG=1` — prints stack traces for non-typed errors.
 - `HERMES_HOME` — overrides `~/.hermes/` for the Hermes adapter.
 - `OPENCLAW_STATE_DIR` — overrides `~/.openclaw/` for the OpenClaw adapter.

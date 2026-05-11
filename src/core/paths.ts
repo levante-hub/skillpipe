@@ -1,14 +1,55 @@
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const SKILLPIPE_HOME = path.join(os.homedir(), ".skillpipe");
-export const CONFIG_PATH = path.join(SKILLPIPE_HOME, "config.json");
-export const LOCK_PATH = path.join(SKILLPIPE_HOME, "lock.json");
-export const REPOS_DIR = path.join(SKILLPIPE_HOME, "repos");
+const SKILLPIPE_DIR_NAME = ".skillpipe";
+
+export function skillpipeHome(): string {
+  const env = process.env.SKILLPIPE_HOME?.trim();
+  if (env) return env;
+  const found = findSkillpipeDirUpward(process.cwd());
+  if (found) return found;
+  return projectSkillpipeHome();
+}
+
+export function configPath(): string {
+  return path.join(skillpipeHome(), "config.json");
+}
+
+export function lockPath(): string {
+  return path.join(skillpipeHome(), "lock.json");
+}
+
+export function reposDir(): string {
+  return path.join(skillpipeHome(), "repos");
+}
+
+export function projectSkillpipeHome(cwd: string = process.cwd()): string {
+  return path.join(cwd, SKILLPIPE_DIR_NAME);
+}
+
+function findSkillpipeDirUpward(start: string): string | null {
+  let dir = path.resolve(start);
+  while (true) {
+    const candidate = path.join(dir, SKILLPIPE_DIR_NAME);
+    if (isDirectory(candidate)) return candidate;
+    const parent = path.dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
+
+function isDirectory(p: string): boolean {
+  try {
+    return fs.statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
+}
 
 export function workspaceForRepo(repoName: string): string {
-  return path.join(REPOS_DIR, sanitizeRepoName(repoName));
+  return path.join(reposDir(), sanitizeRepoName(repoName));
 }
 
 export function defaultClaudeUserSkillsPath(): string {

@@ -1,4 +1,4 @@
-import { LOCK_PATH } from "./paths.js";
+import { lockPath } from "./paths.js";
 import {
   Lockfile,
   LockfileSchema,
@@ -9,23 +9,23 @@ import { pathExists, readJson, writeJson } from "../utils/fs.js";
 import { SkillpipeError } from "../utils/errors.js";
 
 export async function loadLockfile(): Promise<Lockfile> {
-  if (!(await pathExists(LOCK_PATH))) {
+  if (!(await pathExists(lockPath()))) {
     return emptyLockfile();
   }
   try {
-    const raw = await readJson<unknown>(LOCK_PATH);
+    const raw = await readJson<unknown>(lockPath());
     return LockfileSchema.parse(raw);
   } catch (e) {
     throw new SkillpipeError(
       "LOCKFILE_INVALID",
-      `Invalid lockfile at ${LOCK_PATH}: ${(e as Error).message}`
+      `Invalid lockfile at ${lockPath()}: ${(e as Error).message}`
     );
   }
 }
 
 export async function saveLockfile(lock: Lockfile): Promise<void> {
   lock.updatedAt = new Date().toISOString();
-  await writeJson(LOCK_PATH, lock);
+  await writeJson(lockPath(), lock);
 }
 
 export function recordInstalledSkill(

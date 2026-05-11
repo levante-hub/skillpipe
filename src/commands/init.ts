@@ -24,8 +24,9 @@ import {
   defaultLevanteProjectSkillsPath,
   bundledSkillPath,
   BUNDLED_SKILL_NAME,
-  SKILLPIPE_HOME,
-  REPOS_DIR
+  projectSkillpipeHome,
+  reposDir,
+  skillpipeHome
 } from "../core/paths.js";
 import { runRepoConnect } from "./repo-connect.js";
 import { ensureDir, pathExists } from "../utils/fs.js";
@@ -40,8 +41,15 @@ export interface InitOptions {
 export async function runInit(opts: InitOptions = {}): Promise<void> {
   logger.step("Initializing Skillpipe");
 
-  await ensureDir(SKILLPIPE_HOME);
-  await ensureDir(REPOS_DIR);
+  // Force per-workspace scope: every init writes to <cwd>/.skillpipe/.
+  // Subsequent path resolution in this process picks this up via the env var,
+  // and future commands run from this workspace find it via upward search.
+  const home = projectSkillpipeHome();
+  process.env.SKILLPIPE_HOME = home;
+  logger.info(`Using workspace-scoped config at ${home}`);
+
+  await ensureDir(skillpipeHome());
+  await ensureDir(reposDir());
 
   const config: LocalConfig = await loadOrInitLocalConfig();
   const lock = await loadLockfile();
