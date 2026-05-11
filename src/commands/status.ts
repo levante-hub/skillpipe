@@ -59,7 +59,6 @@ export async function runStatus(): Promise<void> {
       local: installed?.version ?? "—",
       remote: s.metadata.version,
       target: installed?.target ?? "—",
-      mode: installed?.mode ?? "—",
       path: installed?.path ?? "—",
       state
     });

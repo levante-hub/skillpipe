@@ -1,9 +1,13 @@
 import { z } from "zod";
 
-export const TargetConfigSchema = z.object({
-  installPath: z.string(),
-  mode: z.enum(["copy", "symlink"]).default("copy")
-});
+const LegacyInstallModeSchema = z.enum(["copy", "symlink"]);
+
+export const TargetConfigSchema = z
+  .object({
+    installPath: z.string(),
+    mode: LegacyInstallModeSchema.optional()
+  })
+  .transform(({ installPath }) => ({ installPath }));
 
 export type TargetConfig = z.infer<typeof TargetConfigSchema>;
 

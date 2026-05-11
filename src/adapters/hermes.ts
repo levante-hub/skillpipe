@@ -28,8 +28,8 @@ export class HermesAdapter implements TargetAdapter {
 
   async installSkill(args: InstallSkillArgs): Promise<InstallSkillResult> {
     const dest = path.join(args.installPath, args.skillName);
-    const mode = await materializeSkill(args.sourceDir, dest, args.mode ?? "copy");
-    return { destPath: dest, mode };
+    await materializeSkill(args.sourceDir, dest);
+    return { destPath: dest };
   }
 
   async removeSkill(args: RemoveSkillArgs): Promise<void> {

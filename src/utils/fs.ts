@@ -49,16 +49,6 @@ export async function copyDir(src: string, dest: string): Promise<void> {
   });
 }
 
-export async function symlinkDir(src: string, dest: string): Promise<void> {
-  const absSource = path.resolve(expandHome(src));
-  const absDest = expandHome(dest);
-  await fse.ensureDir(path.dirname(absDest));
-  if (await fse.pathExists(absDest)) {
-    await fse.remove(absDest);
-  }
-  await fs.symlink(absSource, absDest, "dir");
-}
-
 export async function isSymlink(p: string): Promise<boolean> {
   try {
     const stat = await fs.lstat(expandHome(p));

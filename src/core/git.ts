@@ -181,3 +181,16 @@ export async function getRemoteUrl(cwd: string): Promise<string | null> {
   if (r.exitCode !== 0) return null;
   return r.stdout.trim() || null;
 }
+
+export async function resetHardToRemote(
+  cwd: string,
+  branch: string
+): Promise<void> {
+  const r = await run("git", ["reset", "--hard", `origin/${branch}`], { cwd });
+  if (r.exitCode !== 0) {
+    throw new SkillpipeError(
+      "GIT_OPERATION_FAILED",
+      `git reset --hard origin/${branch} failed: ${r.stderr.trim()}`
+    );
+  }
+}

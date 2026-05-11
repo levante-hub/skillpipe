@@ -1,14 +1,25 @@
 import { z } from "zod";
 
-export const InstalledSkillSchema = z.object({
-  version: z.string(),
-  commit: z.string(),
-  target: z.string(),
-  installPath: z.string(),
-  path: z.string(),
-  mode: z.enum(["copy", "symlink"]).default("copy"),
-  installedAt: z.string()
-});
+const LegacyInstallModeSchema = z.enum(["copy", "symlink"]);
+
+export const InstalledSkillSchema = z
+  .object({
+    version: z.string(),
+    commit: z.string(),
+    target: z.string(),
+    installPath: z.string(),
+    path: z.string(),
+    mode: LegacyInstallModeSchema.optional(),
+    installedAt: z.string()
+  })
+  .transform(({ version, commit, target, installPath, path, installedAt }) => ({
+    version,
+    commit,
+    target,
+    installPath,
+    path,
+    installedAt
+  }));
 
 export type InstalledSkill = z.infer<typeof InstalledSkillSchema>;
 

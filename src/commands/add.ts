@@ -3,6 +3,7 @@ import inquirer from "inquirer";
 import { logger } from "../utils/logger.js";
 import {
   ensureDir,
+  expandHome,
   pathExists,
   writeText
 } from "../utils/fs.js";
@@ -10,11 +11,8 @@ import {
   renderSkillTemplate,
   renderSkillReadme
 } from "../utils/template.js";
-import {
-  loadRepository,
-  findSkill
-} from "../core/repository.js";
-import { getConnectedWorkspace } from "./repo-connect.js";
+import { loadLocalConfig } from "../core/config.js";
+import { parseSkill } from "../core/skill.js";
 import {
   validateSkill,
   DEFAULT_VALIDATION_OPTIONS
@@ -29,9 +27,6 @@ export interface AddOptions {
 }
 
 export async function runAdd(opts: AddOptions): Promise<void> {
-  const { workspace } = await getConnectedWorkspace();
-  const repo = await loadRepository(workspace);
-
   if (!/^[a-z0-9][a-z0-9-_]*$/.test(opts.name)) {
     throw new SkillpipeError(
       "SKILL_INVALID",
@@ -40,7 +35,18 @@ export async function runAdd(opts: AddOptions): Promise<void> {
     );
   }
 
-  const folder = path.join(workspace, repo.config.skillsPath, opts.name);
+  const config = await loadLocalConfig();
+  const targetName = opts.target ?? config.defaultTarget;
+  const targetCfg = config.targets[targetName];
+  if (!targetCfg?.installPath) {
+    throw new SkillpipeError(
+      "TARGET_NOT_INSTALLED",
+      `No install path configured for target "${targetName}".`,
+      "Run `skillpipe init` to configure a target."
+    );
+  }
+  const installPath = expandHome(targetCfg.installPath);
+  const folder = path.join(installPath, opts.name);
   if (await pathExists(folder)) {
     throw new SkillpipeError(
       "SKILL_INVALID",
@@ -68,7 +74,7 @@ export async function runAdd(opts: AddOptions): Promise<void> {
     renderSkillTemplate({
       name: opts.name,
       description,
-      target: opts.target ?? "claude-code"
+      target: targetName
     })
   );
   await writeText(
@@ -76,13 +82,13 @@ export async function runAdd(opts: AddOptions): Promise<void> {
     renderSkillReadme(opts.name)
   );
 
-  logger.success(`Created skills/${opts.name}/SKILL.md`);
-  logger.success(`Created skills/${opts.name}/README.md`);
+  logger.success(`Created ${folder}/SKILL.md`);
+  logger.success(`Created ${folder}/README.md`);
 
-  const skill = await findSkill(repo, opts.name);
+  const skill = await parseSkill(folder);
   const report = await validateSkill(skill, {
     ...DEFAULT_VALIDATION_OPTIONS,
-    scanSecrets: repo.config.security.scanForSecrets
+    scanSecrets: config.security.scanSecrets
   });
   if (report.issues.length > 0) {
     logger.warn(
@@ -96,6 +102,6 @@ export async function runAdd(opts: AddOptions): Promise<void> {
   }
 
   logger.hint(
-    `Edit ${folder} and run \`skillpipe propose ${opts.name}\` to open a PR.`
+    `Edit ${folder} and run \`skillpipe propose ${opts.name}\` to publish it.`
   );
 }

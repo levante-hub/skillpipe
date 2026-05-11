@@ -83,7 +83,7 @@ export async function runInit(opts: InitOptions = {}): Promise<void> {
       );
     }
     const installPath = userScopeInstallPath(opts.target);
-    config.targets[opts.target] = { installPath, mode: "symlink" };
+    config.targets[opts.target] = { installPath };
     config.defaultTarget = opts.target;
     await saveLocalConfig(config);
     await installBundledSkill(opts.target);
@@ -154,8 +154,7 @@ export async function runInit(opts: InitOptions = {}): Promise<void> {
 
   config.defaultTarget = target;
   config.targets[target] = {
-    installPath: path.normalize(followUp.installPath),
-    mode: "symlink"
+    installPath: path.normalize(followUp.installPath)
   };
   await saveLocalConfig(config);
   logger.success(`Saved local config at ~/.skillpipe/config.json`);
@@ -234,8 +233,7 @@ async function installBundledSkill(
   const result = await adapter.installSkill({
     sourceDir,
     skillName: BUNDLED_SKILL_NAME,
-    installPath,
-    mode: "copy"
+    installPath
   });
   logger.success(`Installed ${BUNDLED_SKILL_NAME} skill at ${result.destPath}`);
 }

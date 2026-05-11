@@ -5,18 +5,14 @@ import { HermesAdapter } from "./hermes.js";
 import { LevanteAdapter } from "./levante.js";
 import { OpenclawAdapter } from "./openclaw.js";
 
-export type InstallMode = "copy" | "symlink";
-
 export interface InstallSkillArgs {
   sourceDir: string;
   skillName: string;
   installPath: string;
-  mode?: InstallMode;
 }
 
 export interface InstallSkillResult {
   destPath: string;
-  mode: InstallMode;
 }
 
 export interface RemoveSkillArgs {

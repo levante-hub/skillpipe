@@ -10,7 +10,7 @@ import {
   checkoutTrackingBranch
 } from "../core/git.js";
 import { getAdapter } from "../adapters/index.js";
-import { installSkill, InstallMode } from "../core/sync.js";
+import { installSkill } from "../core/sync.js";
 import {
   validateSkill,
   DEFAULT_VALIDATION_OPTIONS
@@ -33,8 +33,9 @@ export async function runUpdate(opts: UpdateOptions = {}): Promise<void> {
   const branch = config.defaultBranch;
 
   const defaultTargetName = config.defaultTarget;
-  const defaultTargetCfg = config.targets[defaultTargetName];
-  const defaultInstallPath = expandHome(defaultTargetCfg?.installPath ?? "");
+  const defaultInstallPath = expandHome(
+    config.targets[defaultTargetName]?.installPath ?? ""
+  );
 
   logger.step("Fetching remote changes");
   await fetchRepo(workspace);
@@ -114,17 +115,13 @@ export async function runUpdate(opts: UpdateOptions = {}): Promise<void> {
       }
     }
 
-    const mode: InstallMode =
-      installed?.mode ?? defaultTargetCfg?.mode ?? "symlink";
-
     await installSkill({
       skill,
       workspace,
       adapter,
       lock,
       installPath,
-      branch,
-      mode
+      branch
     });
     updates += 1;
     logger.success(

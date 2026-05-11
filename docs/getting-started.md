@@ -81,6 +81,9 @@ Skills are **copied** (not symlinked) into the target install path. Default for
 Claude Code is `~/.claude/skills/` (user scope). You can override with
 `--target` and `--path`.
 
+Edit the skill at its install path; `skillpipe propose <name>` automatically
+syncs those edits into the internal repo cache before pushing.
+
 ## 5. Stay up to date
 
 ```bash

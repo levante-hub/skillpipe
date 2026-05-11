@@ -37,7 +37,7 @@ and there's nothing on `main` to protect yet.
 
 ### 3. Copy semantics, not symlink
 
-Skills are copied (not symlinked) into the target by default. This means:
+Skills are copied (not symlinked) into the target. This means:
 
 - The version of a skill an agent reads is *the version that was installed*,
   not whatever happens to be in the source repo right now.

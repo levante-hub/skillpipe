@@ -17,7 +17,11 @@ export async function loadLocalConfig(): Promise<LocalConfig> {
   }
   try {
     const raw = await readJson<unknown>(configPath());
-    return LocalConfigSchema.parse(raw);
+    const parsed = LocalConfigSchema.parse(raw);
+    if (rawConfigContainsLegacyMode(raw)) {
+      await saveLocalConfig(parsed);
+    }
+    return parsed;
   } catch (e) {
     throw new SkillpipeError(
       "CONFIG_INVALID",
@@ -40,4 +44,21 @@ export async function saveLocalConfig(cfg: LocalConfig): Promise<void> {
 
 export async function localConfigExists(): Promise<boolean> {
   return pathExists(configPath());
+}
+
+function rawConfigContainsLegacyMode(raw: unknown): boolean {
+  if (!raw || typeof raw !== "object") return false;
+  const targets = (raw as { targets?: unknown }).targets;
+  if (!targets || typeof targets !== "object") return false;
+  for (const key of Object.keys(targets as Record<string, unknown>)) {
+    const entry = (targets as Record<string, unknown>)[key];
+    if (
+      entry &&
+      typeof entry === "object" &&
+      Object.prototype.hasOwnProperty.call(entry, "mode")
+    ) {
+      return true;
+    }
+  }
+  return false;
 }

@@ -14,7 +14,11 @@ export async function loadLockfile(): Promise<Lockfile> {
   }
   try {
     const raw = await readJson<unknown>(lockPath());
-    return LockfileSchema.parse(raw);
+    const parsed = LockfileSchema.parse(raw);
+    if (rawLockfileContainsLegacyMode(raw)) {
+      await saveLockfile(parsed);
+    }
+    return parsed;
   } catch (e) {
     throw new SkillpipeError(
       "LOCKFILE_INVALID",
@@ -38,4 +42,21 @@ export function recordInstalledSkill(
 
 export function removeInstalledSkill(lock: Lockfile, name: string): void {
   delete lock.skills[name];
+}
+
+function rawLockfileContainsLegacyMode(raw: unknown): boolean {
+  if (!raw || typeof raw !== "object") return false;
+  const skills = (raw as { skills?: unknown }).skills;
+  if (!skills || typeof skills !== "object") return false;
+  for (const key of Object.keys(skills as Record<string, unknown>)) {
+    const entry = (skills as Record<string, unknown>)[key];
+    if (
+      entry &&
+      typeof entry === "object" &&
+      Object.prototype.hasOwnProperty.call(entry, "mode")
+    ) {
+      return true;
+    }
+  }
+  return false;
 }

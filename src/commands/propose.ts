@@ -13,7 +13,8 @@ import {
   hasLocalChanges,
   checkoutBranch,
   addAndCommit,
-  pushBranch
+  pushBranch,
+  resetHardToRemote
 } from "../core/git.js";
 import { ghCreatePr, requireGhAuth } from "../core/github.js";
 import {
@@ -26,7 +27,8 @@ import {
   saveLockfile,
   recordInstalledSkill
 } from "../core/lockfile.js";
-import { materializeSkill, plainCopySkill } from "../core/sync.js";
+import { findLocalSkillSource } from "../core/local-skill-source.js";
+import { plainCopySkill } from "../core/sync.js";
 import { expandHome, isSymlink, pathExists } from "../utils/fs.js";
 import { SkillpipeError } from "../utils/errors.js";
 import { LocalConfig } from "../schemas/config.schema.js";
@@ -38,7 +40,6 @@ export interface ProposeOptions {
   draft?: boolean;
   branch?: string;
   allowSecretRisk?: boolean;
-  fromInstalled?: boolean;
 }
 
 export async function runPropose(opts: ProposeOptions): Promise<void> {
@@ -68,8 +69,8 @@ export async function runPropose(opts: ProposeOptions): Promise<void> {
   if (!skill) {
     adoption = await prepareAdoption(opts.name, config, repo);
     skill = await findSkill(repo, opts.name);
-  } else if (opts.fromInstalled) {
-    await syncFromInstalled(opts.name, skill.folder);
+  } else {
+    await autoSyncFromInstalled(opts.name, skill.folder);
   }
 
   const report = await validateSkill(skill, {
@@ -98,6 +99,7 @@ export async function runPropose(opts: ProposeOptions): Promise<void> {
   const relSkillPath = path.relative(workspace, skill.folder);
 
   let commitSha: string;
+  let prUrl: string | null = null;
   if (opts.pr) {
     const branchName = opts.branch ?? generateBranchName(opts.name);
     logger.step(`Creating branch ${branchName}`);
@@ -109,7 +111,7 @@ export async function runPropose(opts: ProposeOptions): Promise<void> {
     logger.step("Pushing branch");
     await pushBranch(workspace, branchName);
 
-    const prUrl = await ghCreatePr({
+    prUrl = await ghCreatePr({
       cwd: workspace,
       title: opts.message,
       body: buildPrBody(opts, skill.metadata.name, commitSha),
@@ -123,8 +125,42 @@ export async function runPropose(opts: ProposeOptions): Promise<void> {
     logger.success(`Committed ${commitSha.slice(0, 7)}: ${opts.message}`);
 
     logger.step(`Pushing to ${branch}`);
-    await pushBranch(workspace, branch);
-    logger.success(`Pushed ${commitSha.slice(0, 7)} to ${branch}.`);
+    try {
+      await pushBranch(workspace, branch);
+      logger.success(`Pushed ${commitSha.slice(0, 7)} to ${branch}.`);
+    } catch (err) {
+      const conflict = isPushConflict(err as Error);
+      if (!conflict.isConflict) throw err;
+
+      const branchName = generateBranchName(opts.name);
+      logger.warn(
+        `Direct push to "${branch}" was rejected (${conflict.reason}).`
+      );
+      logger.info("Falling back to Pull Request mode automatically.");
+
+      await checkoutBranch(workspace, branchName, true);
+      await pushBranch(workspace, branchName);
+
+      try {
+        prUrl = await ghCreatePr({
+          cwd: workspace,
+          title: opts.message,
+          body: buildPrBody(opts, skill.metadata.name, commitSha),
+          base: branch,
+          head: branchName,
+          draft: opts.draft
+        });
+      } finally {
+        await checkoutBranch(workspace, branch);
+        await resetHardToRemote(workspace, branch);
+      }
+
+      logger.success(`Created branch ${branchName} from your commit.`);
+      logger.success(`Pull Request created: ${prUrl}`);
+      logger.hint(
+        `A maintainer must merge this PR before the change lands on ${branch}.`
+      );
+    }
   }
 
   if (adoption) {
@@ -135,7 +171,6 @@ export async function runPropose(opts: ProposeOptions): Promise<void> {
 interface AdoptionPlan {
   localSource: string;
   targetName: string;
-  mode: "copy" | "symlink";
 }
 
 async function prepareAdoption(
@@ -151,19 +186,17 @@ async function prepareAdoption(
       "Create it under <cwd>/.claude/skills/<name>/ (or another target's project folder) before running propose."
     );
   }
-  const targetName = inferTargetFromPath(localSource) ?? config.defaultTarget;
-  const targetCfg = config.targets[targetName];
-  const mode = targetCfg?.mode ?? "symlink";
+  const targetName = localSource.targetName ?? config.defaultTarget;
 
   const workspaceSkillFolder = path.join(
     repo.workspace,
     repo.config.skillsPath,
     name
   );
-  logger.step(`Adopting skill from ${localSource}`);
-  await plainCopySkill(localSource, workspaceSkillFolder);
+  logger.step(`Adopting skill from ${localSource.path}`);
+  await plainCopySkill(localSource.path, workspaceSkillFolder);
 
-  return { localSource, targetName, mode };
+  return { localSource: localSource.path, targetName };
 }
 
 async function finalizeAdoption(
@@ -172,12 +205,8 @@ async function finalizeAdoption(
   skillVersion: string,
   commitSha: string
 ): Promise<void> {
-  logger.step(`Linking ${plan.localSource} → workspace (${plan.mode})`);
-  const actualMode = await materializeSkill(
-    workspaceSkillFolder,
-    plan.localSource,
-    plan.mode
-  );
+  logger.step(`Syncing workspace → ${plan.localSource}`);
+  await plainCopySkill(workspaceSkillFolder, plan.localSource);
 
   const lock = await loadLockfile();
   recordInstalledSkill(lock, path.basename(plan.localSource), {
@@ -186,74 +215,53 @@ async function finalizeAdoption(
     target: plan.targetName,
     installPath: path.dirname(plan.localSource),
     path: plan.localSource,
-    mode: actualMode,
     installedAt: new Date().toISOString()
   });
   await saveLockfile(lock);
   logger.success(
-    `Registered "${path.basename(plan.localSource)}" in lockfile (${actualMode}).`
+    `Registered "${path.basename(plan.localSource)}" in lockfile.`
   );
 }
 
-async function findLocalSkillSource(
-  name: string,
-  config: LocalConfig
-): Promise<string | null> {
-  const cwd = process.cwd();
-  const candidates: string[] = [
-    path.join(cwd, ".claude", "skills", name),
-    path.join(cwd, ".levante", "skills", name),
-    path.join(cwd, "skills", name)
-  ];
-  const targetCfg = config.targets[config.defaultTarget];
-  if (targetCfg?.installPath) {
-    candidates.push(path.join(expandHome(targetCfg.installPath), name));
-  }
-  for (const c of candidates) {
-    if ((await pathExists(c)) && !(await isSymlink(c))) {
-      return c;
-    }
-  }
-  return null;
-}
-
-function inferTargetFromPath(localSource: string): string | null {
-  const parent = path.dirname(localSource);
-  const cwd = process.cwd();
-  if (parent === path.join(cwd, ".claude", "skills")) return "claude-code";
-  if (parent === path.join(cwd, ".levante", "skills")) return "levante";
-  return null;
-}
-
-async function syncFromInstalled(
+export async function autoSyncFromInstalled(
   skillName: string,
   workspaceSkillFolder: string
 ): Promise<void> {
   const lock = await loadLockfile();
   const entry = lock.skills[skillName];
-  if (!entry) {
-    throw new SkillpipeError(
-      "TARGET_NOT_INSTALLED",
-      `Skill "${skillName}" is not in the lockfile.`,
-      "Install it first with `skillpipe install <name>`."
-    );
-  }
+  if (!entry) return;
+
   const installed = expandHome(entry.path);
-  if (!(await pathExists(installed))) {
-    throw new SkillpipeError(
-      "TARGET_NOT_INSTALLED",
-      `Installed copy not found at ${installed}.`,
-      "Reinstall the skill or run without --from-installed."
-    );
-  }
-  if (entry.mode === "symlink" || (await isSymlink(installed))) {
-    logger.info(
-      `Skill "${skillName}" is in symlink mode; edits are already in the workspace.`
-    );
-    return;
-  }
-  logger.step(`Syncing changes from ${installed} → workspace`);
+  if (!(await pathExists(installed))) return;
+  if (await isSymlink(installed)) return;
+  if (path.resolve(installed) === path.resolve(workspaceSkillFolder)) return;
+
+  logger.step(`Syncing edits from ${installed} → workspace`);
   await plainCopySkill(installed, workspaceSkillFolder);
+}
+
+export function isPushConflict(err: Error): {
+  isConflict: boolean;
+  reason: string;
+} {
+  const text = `${err.message ?? ""}`.toLowerCase();
+  const patterns: Array<{ re: RegExp; label: string }> = [
+    { re: /non-fast-forward/i, label: "non-fast-forward" },
+    { re: /updates were rejected/i, label: "updates were rejected" },
+    {
+      re: /tip of your current branch is behind/i,
+      label: "branch behind remote"
+    },
+    { re: /protected branch/i, label: "protected branch" },
+    { re: /gh006/i, label: "GH006 protected branch" },
+    { re: /refusing to allow/i, label: "refusing to allow" }
+  ];
+  for (const { re, label } of patterns) {
+    if (re.test(text)) {
+      return { isConflict: true, reason: label };
+    }
+  }
+  return { isConflict: false, reason: "" };
 }
 
 function generateBranchName(skillName: string): string {

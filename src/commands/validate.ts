@@ -2,14 +2,18 @@ import { logger } from "../utils/logger.js";
 import {
   loadRepository,
   listSkills,
-  findSkill
+  tryFindSkill
 } from "../core/repository.js";
 import {
   validateSkill,
   DEFAULT_VALIDATION_OPTIONS
 } from "../core/validator.js";
 import { getConnectedWorkspace } from "./repo-connect.js";
-import { ParsedSkill } from "../core/skill.js";
+import { ParsedSkill, parseSkill } from "../core/skill.js";
+import { findLocalSkillSource } from "../core/local-skill-source.js";
+import { loadLocalConfig } from "../core/config.js";
+import { LocalConfig } from "../schemas/config.schema.js";
+import { SkillpipeError } from "../utils/errors.js";
 
 export interface ValidateOptions {
   name?: string;
@@ -25,9 +29,26 @@ export async function runValidate(
     : (await getConnectedWorkspace()).workspace;
   const repo = await loadRepository(workspace);
 
-  const skills: ParsedSkill[] = opts.name
-    ? [await findSkill(repo, opts.name)]
-    : await listSkills(repo);
+  let skills: ParsedSkill[];
+  if (opts.name) {
+    const found = await tryFindSkill(repo, opts.name);
+    if (found) {
+      skills = [found];
+    } else {
+      const local = await findLocalSkillFolder(opts.name);
+      if (!local) {
+        throw new SkillpipeError(
+          "SKILL_NOT_FOUND",
+          `Skill "${opts.name}" not found in repository or any local install path.`,
+          "Run `skillpipe list` to see available skills, or scaffold one with `skillpipe add`."
+        );
+      }
+      logger.info(`Validating local-only skill at ${local.path}`);
+      skills = [await parseSkill(local.path)];
+    }
+  } else {
+    skills = await listSkills(repo);
+  }
 
   let failed = 0;
   for (const skill of skills) {
@@ -59,4 +80,16 @@ export async function runValidate(
     logger.error(`${failed} skill(s) failed validation.`);
   }
   return { failed };
+}
+
+async function findLocalSkillFolder(
+  name: string
+): Promise<Awaited<ReturnType<typeof findLocalSkillSource>>> {
+  let config: LocalConfig | null = null;
+  try {
+    config = await loadLocalConfig();
+  } catch {
+    // config may not exist when validating outside an initialized workspace
+  }
+  return findLocalSkillSource(name, config);
 }

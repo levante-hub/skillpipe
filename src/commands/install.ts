@@ -16,7 +16,7 @@ import {
   checkoutTrackingBranch
 } from "../core/git.js";
 import { getAdapter } from "../adapters/index.js";
-import { installSkill, InstallMode } from "../core/sync.js";
+import { installSkill } from "../core/sync.js";
 import {
   validateSkill,
   DEFAULT_VALIDATION_OPTIONS
@@ -31,7 +31,6 @@ export interface InstallOptions {
   name: string;
   target?: string;
   installPath?: string;
-  mode?: InstallMode;
   force?: boolean;
   keepLocal?: boolean;
 }
@@ -48,7 +47,6 @@ export async function runInstall(opts: InstallOptions): Promise<void> {
   const installPath = expandHome(
     opts.installPath ?? targetCfg?.installPath ?? ""
   );
-  const mode: InstallMode = opts.mode ?? targetCfg?.mode ?? "symlink";
   if (!installPath) {
     throw new SkillpipeError(
       "TARGET_NOT_INSTALLED",
@@ -146,10 +144,9 @@ export async function runInstall(opts: InstallOptions): Promise<void> {
       adapter,
       lock,
       installPath,
-      branch,
-      mode
+      branch
     });
-    logger.success(`Installed ${skill.metadata.name} → ${destPath} (${mode})`);
+    logger.success(`Installed ${skill.metadata.name} → ${destPath}`);
     installed++;
   }
 

@@ -87,10 +87,6 @@ program
   .option("-t, --target <name>", "target adapter (default: configured)")
   .option("-p, --path <dir>", "override install path")
   .option(
-    "-m, --mode <mode>",
-    "install mode: 'symlink' (default) or 'copy'"
-  )
-  .option(
     "-f, --force",
     "overwrite local skill folders that conflict with installed names"
   )
@@ -105,25 +101,17 @@ program
         opts: {
           target?: string;
           path?: string;
-          mode?: string;
           force?: boolean;
           keepLocal?: boolean;
         }
-      ) => {
-        if (opts.mode && opts.mode !== "copy" && opts.mode !== "symlink") {
-          throw new Error(
-            `Invalid --mode "${opts.mode}". Use "copy" or "symlink".`
-          );
-        }
-        return runInstall({
+      ) =>
+        runInstall({
           name,
           target: opts.target,
           installPath: opts.path,
-          mode: opts.mode as "copy" | "symlink" | undefined,
           force: opts.force,
           keepLocal: opts.keepLocal
-        });
-      }
+        })
     )
   );
 
@@ -216,10 +204,6 @@ program
     "override the auto-generated branch name (requires --pr)"
   )
   .option(
-    "-i, --from-installed",
-    "copy edits from the installed path back into the workspace before proposing (use this when the skill is in copy mode and the agent edited the installed copy)"
-  )
-  .option(
     "--allow-secret-risk",
     "DANGER: bypass secret scanning (not recommended)"
   )
@@ -232,7 +216,6 @@ program
           pr?: boolean;
           draft?: boolean;
           branch?: string;
-          fromInstalled?: boolean;
           allowSecretRisk?: boolean;
         }
       ) =>
@@ -242,7 +225,6 @@ program
           pr: opts.pr,
           draft: opts.draft,
           branch: opts.branch,
-          fromInstalled: opts.fromInstalled,
           allowSecretRisk: opts.allowSecretRisk
         })
     )

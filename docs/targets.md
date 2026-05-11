@@ -100,7 +100,7 @@ is reachable on the system `PATH`.
 
 Levante caches skills at session start, so after a fresh install or update
 restart the Levante session (or trigger a reload command if one is exposed)
-to pick up changes. Symlink mode is supported and recommended.
+to pick up changes.
 
 ## Custom adapter
 
@@ -127,43 +127,22 @@ registering the adapter in `src/adapters/index.ts`. See
 
 ## How install actually works
 
-`install` runs in one of two modes, recorded per-skill in the lockfile:
+`install` always materializes a **real copy** of the skill folder at
+`<installPath>/<skill>`. If the destination already exists, it is overwritten.
 
-- **`symlink` (default)** — `<installPath>/<skill>` is a symlink to
-  `~/.skillpipe/repos/<repo>/skills/<skill>`. The agent reads the symlink
-  transparently; any edit it makes lands directly in the git workspace, so
-  `skillpipe propose <skill>` picks the changes up with no extra step.
-- **`copy`** — the skill folder is copied. Safer on filesystems or platforms
-  that don't tolerate symlinks well (e.g. Windows without developer mode).
-  Trade-off: edits made in the install path are *not* reflected in the
-  workspace, so propose-from-installed has to copy them back (see below).
-
-If the destination already exists, it's overwritten in both modes.
-
-Pick the mode with `--mode copy|symlink` on `skillpipe install`. The
-configured default for each target lives in `~/.skillpipe/config.json` under
-`targets.<name>.mode` and was set during `skillpipe init`. `update` re-uses
-whatever mode is recorded for that skill in the lockfile.
+There is no symlink mode and no `--mode` flag. The internal repo cache at
+`<workspace>/.skillpipe/repos/<repo>/skills/<skill>` is an implementation
+detail: agents and users should treat the install path as the only edit
+surface.
 
 ### Closing the edit loop with `propose`
 
-When the skill is installed in **symlink** mode, this just works:
+Edit the skill at its install path. `skillpipe propose <name>` automatically
+syncs those edits into Skillpipe's internal repo cache before commit/push.
 
 ```bash
 # agent edits ~/.claude/skills/<skill>/SKILL.md
 skillpipe propose <skill> -m "tweak: ..."
 ```
 
-The edit is already in the workspace, so `propose` commits and opens the PR.
-
-When the skill is installed in **copy** mode, the edits live only in the
-install path. Use `--from-installed` to copy them back into the workspace
-first:
-
-```bash
-skillpipe propose <skill> --from-installed -m "tweak: ..."
-```
-
-`propose --from-installed` is a no-op when the skill is in symlink mode (it
-just logs that the edits are already in place), so it's safe to use as a
-default in scripts.
+No flag is needed — the sync is implicit.
