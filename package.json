@@ -1,6 +1,6 @@
 {
   "name": "skillpipe",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Git-native CLI for syncing AI agent skills across environments.",
   "type": "module",
   "bin": {
