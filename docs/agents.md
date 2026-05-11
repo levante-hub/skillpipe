@@ -77,18 +77,22 @@ Three properties of Skillpipe only make sense if the consumer is an agent:
 
 Four moving parts. An agent that uses Skillpipe should hold all four in mind:
 
-1. **Local config** — `~/.skillpipe/config.json`. Which repo is connected, which
+1. **Local config** — `<workspace>/.skillpipe/config.json`. Which repo is connected, which
    target adapter is active, default install path.
-2. **Lockfile** — `~/.skillpipe/lock.json`. Per-skill record of
+2. **Lockfile** — `<workspace>/.skillpipe/lock.json`. Per-skill record of
    `{version, commit, target, installPath, installedAt}`.
-3. **Cloned workspace** — `~/.skillpipe/repos/<name>`. The actual git checkout of
+3. **Cloned workspace** — `<workspace>/.skillpipe/repos/<name>`. The actual git checkout of
    the skills repo. This is what the CLI reads from.
 4. **Target** — where skills are *installed* so the agent can read them. Default
    for `claude-code` is `~/.claude/skills/` (user) or `./.claude/skills/`
    (project).
 
-Editing a skill in the *installed* copy (`~/.claude/skills/<name>/`) is silently
-overwritten on the next `update`. Edits must go in the cloned workspace.
+For targets that support both global and project scopes (`claude-code`,
+`openclaw`, `levante`), `install` must be called with `--scope global` or
+`--scope project` unless the caller passes `--path`. Skillpipe does not guess.
+
+Editing a skill in the installed copy is the supported workflow. `skillpipe
+propose` syncs those edits back into the cloned workspace before commit/push.
 
 ## The bundled `skillpipe-cli` skill
 

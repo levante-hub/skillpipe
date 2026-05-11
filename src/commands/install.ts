@@ -26,11 +26,17 @@ import { getConnectedWorkspace } from "./repo-connect.js";
 import fs from "node:fs/promises";
 import { expandHome, isSymlink, pathExists } from "../utils/fs.js";
 import { SkillpipeError } from "../utils/errors.js";
+import {
+  resolveInstallPathForCommand,
+  supportsGlobalAndProjectScopes
+} from "../core/target-resolution.js";
+import { TargetScope } from "../adapters/index.js";
 
 export interface InstallOptions {
   name: string;
   target?: string;
   installPath?: string;
+  scope?: TargetScope;
   force?: boolean;
   keepLocal?: boolean;
 }
@@ -44,18 +50,15 @@ export async function runInstall(opts: InstallOptions): Promise<void> {
   const branch = config.defaultBranch;
 
   const targetCfg = config.targets[targetName];
-  const installPath = expandHome(
-    opts.installPath ?? targetCfg?.installPath ?? ""
-  );
-  if (!installPath) {
-    throw new SkillpipeError(
-      "TARGET_NOT_INSTALLED",
-      `No install path configured for target "${targetName}".`,
-      "Run `skillpipe init` or pass --path."
-    );
-  }
-
   const adapter = getAdapter(targetName);
+  const installPath = resolveInstallPathForCommand({
+    adapter,
+    targetName,
+    configuredInstallPath: targetCfg?.installPath,
+    overrideInstallPath: opts.installPath,
+    scope: opts.scope,
+    commandExample: `skillpipe install ${opts.name} --target ${targetName} --scope project`
+  });
 
   logger.step(`Fetching latest from ${branch}`);
   await fetchRepo(workspace);

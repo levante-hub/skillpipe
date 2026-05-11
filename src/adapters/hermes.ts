@@ -22,6 +22,10 @@ export class HermesAdapter implements TargetAdapter {
     return pathExists(home);
   }
 
+  supportedScopes(): ("global")[] {
+    return ["global"];
+  }
+
   getDefaultInstallPath(): string {
     return defaultHermesUserSkillsPath();
   }

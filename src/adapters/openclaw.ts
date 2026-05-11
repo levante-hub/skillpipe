@@ -25,7 +25,11 @@ export class OpenclawAdapter implements TargetAdapter {
     return pathExists(home);
   }
 
-  getDefaultInstallPath(scope: "user" | "project" = "user"): string {
+  supportedScopes(): ("global" | "project")[] {
+    return ["global", "project"];
+  }
+
+  getDefaultInstallPath(scope: "global" | "project" = "global"): string {
     return scope === "project"
       ? defaultOpenclawProjectSkillsPath()
       : defaultOpenclawUserSkillsPath();

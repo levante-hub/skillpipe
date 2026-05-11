@@ -37,7 +37,7 @@ targets: [claude-code]
 | `description` | yes | One-line summary of what the skill does. Shown by `skillpipe list`. |
 | `author` | no | Free text. |
 | `tags` | no | Array of strings. Useful for filtering / discovery. |
-| `targets` | yes | Array of target adapter names this skill is meant for. Today: `claude-code`, `custom`. |
+| `targets` | yes | Array of target adapter names this skill is meant for. Examples: `claude-code`, `hermes`, `openclaw`, `levante`, `custom`. |
 
 ## Body (recommended structure)
 
@@ -114,12 +114,17 @@ for the CLI to detect drift on `update`. They're for humans.
 
 ## Where skills end up after install
 
-For the `claude-code` target:
+For built-in dual-scope targets:
 
-- User scope: `~/.claude/skills/<name>/`
+- Claude Code global scope: `~/.claude/skills/<name>/`
 - Project scope: `<project>/.claude/skills/<name>/`
+- OpenClaw global scope: `~/.openclaw/skills/<name>/`
+- OpenClaw project scope: `<workspace>/skills/<name>/`
+- Levante global scope: `~/levante/skills/<name>/`
+- Levante project scope: `<project>/.levante/skills/<name>/`
 
 For the `custom` target: whatever path you configured / passed via `--path`.
 
-The installed copy is **a copy**. Editing it directly is silently overwritten on
-the next `update`. Always edit in `~/.skillpipe/repos/<repo>/skills/<name>/`.
+The installed copy is **a copy**, but it is also the supported edit surface.
+Edit the installed skill and use `skillpipe propose <name>` to sync those
+changes back into the internal repo cache before commit/push.

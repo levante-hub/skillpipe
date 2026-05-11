@@ -24,23 +24,25 @@ unexpected errors.
 
 ## `skillpipe init`
 
-Initialize Skillpipe on this machine. Creates `~/.skillpipe/config.json` and
-`~/.skillpipe/lock.json`. Asks which agent target you're setting up and installs
-the bundled `skillpipe-cli` skill into the current project.
+Initialize Skillpipe in the current workspace. Creates
+`<workspace>/.skillpipe/config.json` and `<workspace>/.skillpipe/lock.json`.
+Asks which agent target you're setting up and installs the bundled
+`skillpipe-cli` skill into the current project.
 
 ```bash
 skillpipe init
-skillpipe init --yes        # non-interactive, defaults to claude-code
+skillpipe init --yes --target hermes
 ```
 
 | Flag | Purpose |
 |---|---|
-| `-y, --yes` | Skip prompts; use Claude Code defaults. |
+| `-y, --yes` | Skip prompts. Requires `--target`. |
+| `-t, --target <name>` | Agent to configure. Required with `--yes`. |
 
 ## `skillpipe repo connect <url>`
 
 Connect a GitHub repository as the skills source. Clones into
-`~/.skillpipe/repos/<name>` and tracks the default branch.
+`<workspace>/.skillpipe/repos/<name>` and tracks the default branch.
 
 ```bash
 skillpipe repo connect https://github.com/<you>/my-agent-skills
@@ -88,7 +90,7 @@ Install a skill (or all of them) into the configured target.
 
 ```bash
 skillpipe install brand-analysis
-skillpipe install all
+skillpipe install brand-analysis --target levante --scope project
 skillpipe install brand-analysis --target custom --path ./agent/skills
 ```
 
@@ -96,6 +98,7 @@ skillpipe install brand-analysis --target custom --path ./agent/skills
 |---|---|
 | `-t, --target <name>` | Override the default target adapter. |
 | `-p, --path <dir>` | Override the install path. |
+| `--scope <global\|project>` | Required for targets that support both scopes unless you pass `--path`. |
 
 ## `skillpipe update [name]`
 
@@ -104,7 +107,7 @@ Pull upstream changes and re-install drifted skills.
 ```bash
 skillpipe update                # update everything currently installed
 skillpipe update brand-analysis # update one skill
-skillpipe update --all          # update every skill in the repo, even uninstalled ones
+skillpipe update --all --scope project
 skillpipe update --dry-run      # show what would change
 ```
 
@@ -112,6 +115,7 @@ skillpipe update --dry-run      # show what would change
 |---|---|
 | `--all` | Include skills not currently installed locally. |
 | `--dry-run` | Don't write — show planned changes. |
+| `--scope <global\|project>` | Required when `update --all` would install new skills on dual-scope targets. |
 
 ## `skillpipe status`
 
@@ -121,8 +125,8 @@ commit upstream. Read-only.
 ## `skillpipe add <name>`
 
 Scaffold a new skill from a template inside the connected repo's local checkout.
-This creates `skills/<name>/SKILL.md` in `~/.skillpipe/repos/<repo>/` — it does
-**not** install anything into the target.
+This creates `<installPath>/<name>/SKILL.md` in the current target's install
+path so you can edit it in place and then publish it with `propose`.
 
 ```bash
 skillpipe add customer-support -d "Triage and answer support tickets"
@@ -179,7 +183,7 @@ lockfile presence, connected repo health.
 
 | Variable | Purpose |
 |---|---|
-| `SKILLPIPE_HOME` | Override `~/.skillpipe/`. Useful for testing. |
+| `SKILLPIPE_HOME` | Override the default workspace-local `.skillpipe/` resolution. Useful for testing. |
 | `SKILLPIPE_DEBUG=1` | Print stack traces on non-typed errors. |
 
 ## Error codes
@@ -187,5 +191,5 @@ lockfile presence, connected repo health.
 The CLI emits typed errors as `[CODE] message`. The full table — with what each
 code means and how to recover — lives in the bundled `skillpipe-cli` skill (the
 one installed into your project on `skillpipe init`). See
-`<your-project>/.claude/skills/skillpipe-cli/SKILL.md`, section "Error codes and
-recovery".
+the `skillpipe-cli/SKILL.md` installed in your target's project skills folder,
+section "Error codes and recovery".

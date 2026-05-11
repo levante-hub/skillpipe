@@ -19,11 +19,17 @@ import path from "node:path";
 import { getConnectedWorkspace } from "./repo-connect.js";
 import { expandHome } from "../utils/fs.js";
 import { SkillpipeError } from "../utils/errors.js";
+import {
+  resolveInstallPathForCommand,
+  supportsGlobalAndProjectScopes
+} from "../core/target-resolution.js";
+import { TargetScope } from "../adapters/index.js";
 
 export interface UpdateOptions {
   name?: string;
   all?: boolean;
   dryRun?: boolean;
+  scope?: TargetScope;
 }
 
 export async function runUpdate(opts: UpdateOptions = {}): Promise<void> {
@@ -57,21 +63,33 @@ export async function runUpdate(opts: UpdateOptions = {}): Promise<void> {
     return;
   }
 
+  const defaultAdapter = getAdapter(defaultTargetName);
+  if (
+    candidates.some((skill) => !lock.skills[skill.metadata.name]) &&
+    supportsGlobalAndProjectScopes(defaultAdapter) &&
+    !opts.scope
+  ) {
+    throw new SkillpipeError(
+      "TARGET_SCOPE_REQUIRED",
+      `Target "${defaultTargetName}" supports both global and project scopes. Re-run with --scope global or --scope project.`,
+      `Example: skillpipe update${opts.all ? " --all" : opts.name ? ` ${opts.name}` : ""} --scope project`
+    );
+  }
+
   let updates = 0;
   for (const skill of candidates) {
     const installed = lock.skills[skill.metadata.name];
     const targetName = installed?.target ?? defaultTargetName;
-    const installPath = expandHome(
-      installed?.installPath ?? defaultInstallPath
-    );
-    if (!installPath) {
-      throw new SkillpipeError(
-        "TARGET_NOT_INSTALLED",
-        `No install path configured for target "${targetName}".`,
-        "Run `skillpipe init`, reinstall the skill, or configure the target manually."
-      );
-    }
     const adapter = getAdapter(targetName);
+    const installPath = installed
+      ? expandHome(installed.installPath)
+      : resolveInstallPathForCommand({
+          adapter,
+          targetName,
+          configuredInstallPath: defaultInstallPath,
+          scope: opts.scope,
+          commandExample: `skillpipe update${opts.all ? " --all" : ` ${skill.metadata.name}`} --scope project`
+        });
     const rel = path.relative(workspace, skill.folder);
     const newCommit =
       (await lastCommitForPath(workspace, rel)) ?? remote;

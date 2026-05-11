@@ -21,7 +21,11 @@ export class ClaudeCodeAdapter implements TargetAdapter {
     return pathExists(path.join(os.homedir(), ".claude"));
   }
 
-  getDefaultInstallPath(scope: "user" | "project" = "user"): string {
+  supportedScopes(): ("global" | "project")[] {
+    return ["global", "project"];
+  }
+
+  getDefaultInstallPath(scope: "global" | "project" = "global"): string {
     return scope === "project"
       ? defaultClaudeProjectSkillsPath()
       : defaultClaudeUserSkillsPath();

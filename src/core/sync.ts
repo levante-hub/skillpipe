@@ -22,6 +22,7 @@ export interface InstallSkillArgs {
 
 export async function installSkill(args: InstallSkillArgs): Promise<string> {
   const { skill, workspace, adapter, lock, installPath, branch } = args;
+  const installedAt = new Date().toISOString();
 
   const relSkillPath = path.relative(workspace, skill.folder);
   const commit =
@@ -31,7 +32,9 @@ export async function installSkill(args: InstallSkillArgs): Promise<string> {
   const { destPath } = await adapter.installSkill({
     sourceDir: skill.folder,
     skillName: skill.metadata.name,
-    installPath
+    installPath,
+    skill,
+    installedAt
   });
 
   recordInstalledSkill(lock, skill.metadata.name, {
@@ -40,7 +43,7 @@ export async function installSkill(args: InstallSkillArgs): Promise<string> {
     target: adapter.name,
     installPath,
     path: destPath,
-    installedAt: new Date().toISOString()
+    installedAt
   });
 
   lock.branch = branch;

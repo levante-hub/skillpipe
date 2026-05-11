@@ -39,7 +39,7 @@ Skillpipe has three moving parts the user needs to keep in mind:
    - `claude-code` → `~/.claude/skills/` (user) or `<cwd>/.claude/skills/` (project)
    - `hermes` → `~/.hermes/skills/` (user only; respects `HERMES_HOME`)
    - `openclaw` → `~/.openclaw/skills/` (user) or `<cwd>/skills/` (project)
-   - `levante` → `~/.levante/skills/` (user) or `<cwd>/.levante/skills/` (project)
+   - `levante` → `~/levante/skills/` (global) or `<cwd>/.levante/skills/` (project)
    - `custom` → whatever path the user configured
 
 Skillpipe also maintains an internal clone of the connected repo, but treat it as an implementation detail. **You always edit at the install path.** `propose` handles syncing those edits into the internal cache before commit/push.
@@ -49,6 +49,8 @@ A skill is a folder under `skills/<name>/` containing at minimum a `SKILL.md` wi
 ### Install semantics
 
 `install` and `update` always materialize a **real copy** of the skill folder at the target's install path. There is no symlink mode, no `--mode` flag. Editing the install path is the supported edit surface; `propose` reads those edits back automatically.
+
+For targets that support both global and project scopes (`claude-code`, `openclaw`, `levante`), the caller must pass `--scope global` or `--scope project` unless they pass `--path`. If they omit both, the CLI raises `TARGET_SCOPE_REQUIRED` with an explanatory re-run example. Do not guess.
 
 ### Install conflicts (local folder vs remote skill)
 
@@ -96,7 +98,7 @@ Run these commands in order. Stop and report the failure if any step errors.
 - `skillpipe status` to see what's installed and whether any installed skill has a newer commit upstream.
 - `skillpipe update` to pull and re-install everything that drifted. Add `--dry-run` first if the user is cautious or if many skills are affected.
 - `skillpipe update <name>` to update a single skill.
-- `skillpipe update --all` to update *every* skill in the repo, including ones not currently installed locally — only do this if the user explicitly asks for it.
+- `skillpipe update --all` to update *every* skill in the repo, including ones not currently installed locally — only do this if the user explicitly asks for it. On dual-scope targets, add `--scope global` or `--scope project` if new skills may be installed.
 
 ### Authoring a new skill
 
@@ -168,8 +170,8 @@ When **not** to invoke:
 | `skillpipe repo connect <url>` | Once per repo, per machine | `-b, --branch <name>`, `--init`, `-f, --force` |
 | `skillpipe repo create <name>` | When the user has no skills repo yet | `--public` / `--private`, `-d, --description`, `-t, --target` |
 | `skillpipe list` (alias `ls`) | Anytime — read-only | — |
-| `skillpipe install <name\|all>` | Per skill, after `connect` | `-t, --target <name>`, `-p, --path <dir>`, `-f, --force`, `--keep-local` |
-| `skillpipe update [name]` | Recurring | `--all`, `--dry-run` |
+| `skillpipe install <name\|all>` | Per skill, after `connect` | `-t, --target <name>`, `-p, --path <dir>`, `--scope <global\|project>`, `-f, --force`, `--keep-local` |
+| `skillpipe update [name]` | Recurring | `--all`, `--dry-run`, `--scope <global\|project>` |
 | `skillpipe status` | Anytime — read-only | — |
 | `skillpipe add <name>` | Authoring a new skill (scaffolds in the install path) | `-d, --description <text>`, `-t, --target <name>`, `-y, --yes` |
 | `skillpipe validate [name]` | Before every `propose`, and on demand | `-r, --repo <dir>`, `--no-secrets` |
@@ -197,6 +199,7 @@ The CLI prints typed errors as `[CODE] message` followed by a hint. Map them to 
 | `VALIDATION_FAILED` | One or more validators failed | Re-run validate, fix the issues it reports |
 | `SECRET_DETECTED` | Secret pattern found in a skill file | Remove the secret. Do **not** suggest `--allow-secret-risk` as a workaround |
 | `TARGET_UNKNOWN` | Adapter name not in registry, or `--yes` used without `--target` | Pass `--target <claude-code\|hermes\|openclaw\|levante\|custom>` |
+| `TARGET_SCOPE_REQUIRED` | The target supports both global and project scopes and the command omitted both `--scope` and `--path` | Re-run with `--scope global` or `--scope project`, or pass `--path <dir>` explicitly |
 | `TARGET_NOT_INSTALLED` | Target adapter present but install path missing | Pass `--path <dir>` or install first |
 | `GH_NOT_AVAILABLE` | `gh` CLI not installed | Tell the user to install GitHub CLI and re-run |
 | `GH_NOT_AUTHENTICATED` | `gh auth status` fails | Ask the user to run `gh auth login` themselves (interactive) |
@@ -222,10 +225,11 @@ These rules are non-negotiable. Follow them even if they slow you down:
 7. **Always** run `skillpipe validate <name>` immediately before `skillpipe propose <name>`.
 8. **Always** prefer `--dry-run` on `update` when the change set is large or when the user is uncertain.
 9. **Always** confirm with the user before `skillpipe install all` or `skillpipe update --all`, since both can write many files.
-10. **Always** use `repo connect --force` only after confirming the user really wants to switch the connected repo on this machine.
-11. **Never** silently resolve an `install` local-folder conflict. If you see the prompt or `USER_ABORTED`, surface the conflict to the user with: (a) the skill name, (b) the conflicting path, (c) that overwriting would replace whatever lives there with the remote version. Then ask whether to overwrite (`--force`) or keep local (`--keep-local`).
-12. **When you hit a Skillpipe bug, inconsistency or unrecoverable error, file it via `skillpipe report-issue`** before giving up. Closing the feedback loop is the whole point of that command — silent failure is worse than a noisy issue. Capture the URL it prints on stdout and share it with the user. Do **not** file an issue for user error, missing prerequisites, or feature requests — see the "Reporting bugs back to maintainers" section above.
-13. **When direct push falls back to PR automatically, surface the PR URL** and explain the change is not merged yet. Do not retry the push; the fallback already cleaned the local tracked branch back to `origin/<branch>`.
+10. **Always** pass `--scope global` or `--scope project` on dual-scope targets unless the user gave an explicit `--path`. Never infer the scope from old config.
+11. **Always** use `repo connect --force` only after confirming the user really wants to switch the connected repo on this machine.
+12. **Never** silently resolve an `install` local-folder conflict. If you see the prompt or `USER_ABORTED`, surface the conflict to the user with: (a) the skill name, (b) the conflicting path, (c) that overwriting would replace whatever lives there with the remote version. Then ask whether to overwrite (`--force`) or keep local (`--keep-local`).
+13. **When you hit a Skillpipe bug, inconsistency or unrecoverable error, file it via `skillpipe report-issue`** before giving up. Closing the feedback loop is the whole point of that command — silent failure is worse than a noisy issue. Capture the URL it prints on stdout and share it with the user. Do **not** file an issue for user error, missing prerequisites, or feature requests — see the "Reporting bugs back to maintainers" section above.
+14. **When direct push falls back to PR automatically, surface the PR URL** and explain the change is not merged yet. Do not retry the push; the fallback already cleaned the local tracked branch back to `origin/<branch>`.
 
 ## Anti-patterns to avoid
 
@@ -239,7 +243,7 @@ These rules are non-negotiable. Follow them even if they slow you down:
 
 ## Useful environment variables
 
-- `SKILLPIPE_HOME` — overrides the workspace-local `.skillpipe/` resolution. When set, the CLI uses that path directly instead of the upward search. Useful for testing or for forcing the old global behavior at `~/.skillpipe/`.
+- `SKILLPIPE_HOME` — overrides the workspace-local `.skillpipe/` resolution. When set, the CLI uses that path directly instead of the upward search. Useful for testing.
 - `SKILLPIPE_DEBUG=1` — prints stack traces for non-typed errors.
 - `SKILLPIPE_ISSUE_REPO` — overrides the destination repo for `skillpipe report-issue`. Defaults to `levante-hub/skillpipe`. Use only for testing against a sandbox; do not change it on the user's behalf.
 - `HERMES_HOME` — overrides `~/.hermes/` for the Hermes adapter.
@@ -255,7 +259,7 @@ skillpipe init                                 # interactive — user picks agen
 # (or for CI:) skillpipe init --yes --target hermes
 skillpipe repo connect <url>
 skillpipe list
-skillpipe install all                          # only after confirming with the user
+skillpipe install all --scope project          # dual-scope targets need --scope; confirm first
 ```
 
 **"Update everything"**

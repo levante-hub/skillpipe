@@ -49,14 +49,14 @@ Skills are copied (not symlinked) into the target. This means:
 
 These rules are baked into the CLI and the bundled `skillpipe-cli` skill:
 
-1. **Never edit `~/.skillpipe/config.json` or `~/.skillpipe/lock.json` by
+1. **Never edit `<workspace>/.skillpipe/config.json` or `<workspace>/.skillpipe/lock.json` by
    hand.** Always go through the CLI.
 2. **Never push directly to `main`** of the skills repo. Use `propose`.
 3. **Never pass `--allow-secret-risk` unprompted.** If the validator flags a
    secret, the secret must be removed from the file. Period.
 4. **Never run `gh auth login` on the user's behalf** — it's interactive. The
    bundled skill instructs agents to suggest the user run it themselves.
-5. **Never delete `~/.skillpipe/repos/<name>` to "fix" a problem** before
+5. **Never delete `<workspace>/.skillpipe/repos/<name>` to "fix" a problem** before
    reading the error and trying `skillpipe doctor`. That folder may contain
    uncommitted local edits.
 6. **Always run `skillpipe validate <name>` immediately before

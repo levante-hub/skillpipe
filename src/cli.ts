@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -86,6 +86,10 @@ program
   .description("Install a skill (or 'all') into the configured target.")
   .option("-t, --target <name>", "target adapter (default: configured)")
   .option("-p, --path <dir>", "override install path")
+  .addOption(
+    new Option("--scope <scope>", "install scope for targets that support both")
+      .choices(["global", "project"])
+  )
   .option(
     "-f, --force",
     "overwrite local skill folders that conflict with installed names"
@@ -101,6 +105,7 @@ program
         opts: {
           target?: string;
           path?: string;
+          scope?: "global" | "project";
           force?: boolean;
           keepLocal?: boolean;
         }
@@ -109,6 +114,7 @@ program
           name,
           target: opts.target,
           installPath: opts.path,
+          scope: opts.scope,
           force: opts.force,
           keepLocal: opts.keepLocal
         })
@@ -120,16 +126,21 @@ program
   .description("Update installed skills with remote changes.")
   .option("--all", "update every skill in the repo, not only installed ones")
   .option("--dry-run", "show what would change without writing")
+  .addOption(
+    new Option("--scope <scope>", "install scope for new skills on dual-scope targets")
+      .choices(["global", "project"])
+  )
   .action(
     wrap(
       async (
         name: string | undefined,
-        opts: { all?: boolean; dryRun?: boolean }
+        opts: { all?: boolean; dryRun?: boolean; scope?: "global" | "project" }
       ) =>
         runUpdate({
           name,
           all: opts.all,
-          dryRun: opts.dryRun
+          dryRun: opts.dryRun,
+          scope: opts.scope
         })
     )
   );

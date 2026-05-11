@@ -11,6 +11,8 @@ import {
 } from "../core/git.js";
 import path from "node:path";
 import { getConnectedWorkspace } from "./repo-connect.js";
+import { getAdapter } from "../adapters/index.js";
+import { supportsGlobalAndProjectScopes } from "../core/target-resolution.js";
 
 export async function runStatus(): Promise<void> {
   const config = await loadLocalConfig();
@@ -27,8 +29,16 @@ export async function runStatus(): Promise<void> {
   logger.info(`Repository:   github.com/${repoFullName}`);
   logger.info(`Branch:       ${branch}`);
   logger.info(`Default target: ${config.defaultTarget}`);
-  const defaultInstallPath = config.targets[config.defaultTarget]?.installPath;
-  if (defaultInstallPath) logger.info(`Default path:   ${defaultInstallPath}`);
+  const adapter = getAdapter(config.defaultTarget);
+  if (supportsGlobalAndProjectScopes(adapter)) {
+    logger.info(
+      `Scope paths:   global=${adapter.getDefaultInstallPath("global")}  project=${adapter.getDefaultInstallPath("project")}`
+    );
+    logger.info(`Install scope: required via --scope global|project`);
+  } else {
+    const defaultInstallPath = config.targets[config.defaultTarget]?.installPath;
+    if (defaultInstallPath) logger.info(`Default path:   ${defaultInstallPath}`);
+  }
   logger.info(`Remote HEAD:  ${remote.slice(0, 7)}`);
   logger.newline();
 

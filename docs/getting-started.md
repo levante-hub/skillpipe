@@ -31,17 +31,18 @@ skillpipe init
 
 What happens:
 
-- Creates `~/.skillpipe/config.json` and `~/.skillpipe/lock.json`.
-- Asks which agent you're setting up here (Claude Code or a custom path).
+- Creates `<workspace>/.skillpipe/config.json` and `<workspace>/.skillpipe/lock.json`.
+- Asks which agent you're setting up here.
 - Installs the bundled `skillpipe-cli` skill into the **current project**, so any
   agent working in this directory immediately knows how to use the CLI itself.
   - For Claude Code: `<cwd>/.claude/skills/skillpipe-cli/`
+  - For Levante: `<cwd>/.levante/skills/skillpipe-cli/`
   - For Custom: `<your-path>/skillpipe-cli/`
 
-For a non-interactive install with defaults (Claude Code):
+For a non-interactive install:
 
 ```bash
-skillpipe init --yes
+skillpipe init --yes --target levante
 ```
 
 ## 3. Connect a repository
@@ -59,7 +60,7 @@ Or, if you want a fresh one with the standard layout (`skills/`, `agents/`,
 skillpipe repo create my-agent-skills --private
 ```
 
-The connected repo is cloned into `~/.skillpipe/repos/<name>` — that local checkout
+The connected repo is cloned into `<workspace>/.skillpipe/repos/<name>` — that local checkout
 is the source the CLI reads from.
 
 ## 4. Install skills
@@ -73,13 +74,15 @@ skillpipe list
 Install one or all:
 
 ```bash
-skillpipe install brand-analysis
+skillpipe install brand-analysis --target claude-code --scope global
+skillpipe install plane-compose --target levante --scope project
 skillpipe install all
 ```
 
 Skills are **copied** (not symlinked) into the target install path. Default for
-Claude Code is `~/.claude/skills/` (user scope). You can override with
-`--target` and `--path`.
+single-scope targets like Hermes is the configured path. For dual-scope targets
+like Claude Code, OpenClaw and Levante, you must choose `--scope global` or
+`--scope project` unless you pass `--path`.
 
 Edit the skill at its install path; `skillpipe propose <name>` automatically
 syncs those edits into the internal repo cache before pushing.
@@ -94,12 +97,12 @@ skillpipe update --dry-run  # show what would change without writing
 
 ## 6. Propose improvements
 
-When you want to edit or add a skill, work in the local checkout
-(`~/.skillpipe/repos/<repo>/skills/<name>/`) and open a PR via the CLI:
+When you want to edit or add a skill, work in the installed copy and open a PR
+via the CLI:
 
 ```bash
 skillpipe add customer-support -d "Triage and answer support tickets"
-# edit ~/.skillpipe/repos/<repo>/skills/customer-support/SKILL.md
+# edit <installPath>/customer-support/SKILL.md
 skillpipe validate customer-support
 skillpipe propose customer-support -m "feat: customer-support skill"
 ```

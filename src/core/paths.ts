@@ -81,7 +81,7 @@ export function defaultOpenclawProjectSkillsPath(cwd: string = process.cwd()): s
 }
 
 export function defaultLevanteUserSkillsPath(): string {
-  return path.join(os.homedir(), ".levante", "skills");
+  return path.join(os.homedir(), "levante", "skills");
 }
 
 export function defaultLevanteProjectSkillsPath(cwd: string = process.cwd()): string {

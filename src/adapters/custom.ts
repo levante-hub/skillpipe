@@ -16,6 +16,10 @@ export class CustomAdapter implements TargetAdapter {
     return true;
   }
 
+  supportedScopes(): [] {
+    return [];
+  }
+
   getDefaultInstallPath(): string {
     return path.join(process.cwd(), "skills");
   }

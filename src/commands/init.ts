@@ -32,6 +32,7 @@ import { runRepoConnect } from "./repo-connect.js";
 import { ensureDir, pathExists } from "../utils/fs.js";
 import { availableAdapters, getAdapter } from "../adapters/index.js";
 import { SkillpipeError } from "../utils/errors.js";
+import { parseSkill } from "../core/skill.js";
 
 export interface InitOptions {
   yes?: boolean;
@@ -82,7 +83,7 @@ export async function runInit(opts: InitOptions = {}): Promise<void> {
         `Unknown target "${opts.target}". Available: ${available.join(", ")}.`
       );
     }
-    const installPath = userScopeInstallPath(opts.target);
+    const installPath = globalScopeInstallPath(opts.target);
     config.targets[opts.target] = { installPath };
     config.defaultTarget = opts.target;
     await saveLocalConfig(config);
@@ -194,7 +195,7 @@ async function promptUntilTargetPicked(): Promise<string> {
   }
 }
 
-function userScopeInstallPath(target: string): string {
+function globalScopeInstallPath(target: string): string {
   if (target === "claude-code") return defaultClaudeUserSkillsPath();
   if (target === "hermes") return defaultHermesUserSkillsPath();
   if (target === "openclaw") return defaultOpenclawUserSkillsPath();
@@ -213,6 +214,7 @@ async function installBundledSkill(
     );
     return;
   }
+  const skill = await parseSkill(sourceDir);
 
   const adapter = getAdapter(target);
   let installPath: string;
@@ -233,7 +235,9 @@ async function installBundledSkill(
   const result = await adapter.installSkill({
     sourceDir,
     skillName: BUNDLED_SKILL_NAME,
-    installPath
+    installPath,
+    skill,
+    installedAt: new Date().toISOString()
   });
   logger.success(`Installed ${BUNDLED_SKILL_NAME} skill at ${result.destPath}`);
 }

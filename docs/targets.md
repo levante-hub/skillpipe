@@ -11,13 +11,13 @@ how to lay out skill files for that specific environment.
 | `claude-code` | `~/.claude/skills/` (user) or `<project>/.claude/skills/` (project) | First-class. The CLI ships with this enabled. |
 | `hermes` | `~/.hermes/skills/` (user only — respects `HERMES_HOME`) | Hermes agent runtime. No project scope. |
 | `openclaw` | `~/.openclaw/skills/` (user, respects `OPENCLAW_STATE_DIR`) or `<workspace>/skills/` (project) | OpenClaw personal AI assistant. Auto-discovery, no manual registration. |
-| `levante` | `~/.levante/skills/` (user) or `<cwd>/.levante/skills/` (project) | Levante agent. Detected by `levante` on `PATH`. Project scope wins on name collision. |
+| `levante` | `~/levante/skills/` (global) or `<cwd>/.levante/skills/` (project) | Levante agent. Detected by `levante` on `PATH`. Project scope wins on name collision. |
 | `custom` | Whatever you pass via `--path` or set in config | Use for any agent that reads skills from a directory you control. |
 
 ## Choosing a target
 
 `skillpipe init` asks which target you want and saves it as the default in
-`~/.skillpipe/config.json`. You can override per-command:
+`<workspace>/.skillpipe/config.json`. You can override per-command:
 
 ```bash
 skillpipe install brand-analysis --target custom --path ./agent/skills
@@ -33,8 +33,10 @@ For Claude Code, skills can live at two scopes:
   project. Good for skills that depend on project-specific context.
 
 `skillpipe init` writes the bundled `skillpipe-cli` skill to **project scope**
-(it's about teaching the agent in that project how to use the CLI). Subsequent
-`skillpipe install` calls default to user scope, configurable via `--path`.
+(it's about teaching the agent in that project how to use the CLI). Because
+Claude Code supports both global and project scopes, later `skillpipe install`
+calls must specify `--scope global` or `--scope project` unless you pass
+`--path` explicitly.
 
 ## Hermes adapter
 
@@ -66,9 +68,10 @@ defaults to the two most common ones:
 useful for isolating installations or service-user setups.
 
 `skillpipe init` writes the bundled `skillpipe-cli` skill to **project scope**
-so the agent in that workspace immediately knows how to use the CLI.
-Subsequent `skillpipe install` calls default to user scope, configurable via
-`--path`.
+so the agent in that workspace immediately knows how to use the CLI. Because
+OpenClaw supports both global and project scopes, later `skillpipe install`
+calls must specify `--scope global` or `--scope project` unless you pass
+`--path` explicitly.
 
 OpenClaw auto-discovers any folder containing a valid `SKILL.md`, so no extra
 registration in `openclaw.json` is needed.
@@ -79,21 +82,23 @@ The `levante` adapter installs skills into Levante's auto-discovered skill
 directories. Levante scans two roots in precedence order, and Skillpipe
 exposes both:
 
-- **User scope** — `~/.levante/skills/`. Available across all projects.
+- **Global scope** — `~/levante/skills/`. Available across all projects.
 - **Project scope** — `<cwd>/.levante/skills/`. Highest precedence; if a
-  project-scope skill shares the `name` of a user-scope skill, the project
+  project-scope skill shares the `name` of a global-scope skill, the project
   one wins.
 
 Levante auto-discovers any first-level subdirectory containing a valid
-`SKILL.md` (same YAML contract: `name` and `description` required; `version`,
-`targets`, `tags` optional). No manifest registration needed. There is no
-environment variable override; paths are resolved strictly from the user
-home and the current working directory.
+`SKILL.md`. Skillpipe installs the normal skill source and then rewrites the
+installed copy's frontmatter to add the Levante fields (`id`, `category`,
+`installed-at`, `user-invocable`) while preserving the original content and
+metadata needed by other targets.
 
 `skillpipe init` writes the bundled `skillpipe-cli` skill to **project scope**
 so the agent in that workspace immediately knows how to operate the CLI.
-Subsequent `skillpipe install` calls default to user scope, configurable via
-`--path`.
+Because Levante supports both global and project scopes, later `skillpipe
+install` calls must specify `--scope global` or `--scope project` unless you
+pass `--path` explicitly. If you omit both, the CLI fails with an explanatory
+error instead of guessing.
 
 Detection: Skillpipe considers Levante available when the `levante` binary
 is reachable on the system `PATH`.

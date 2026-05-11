@@ -4,11 +4,16 @@ import { CustomAdapter } from "./custom.js";
 import { HermesAdapter } from "./hermes.js";
 import { LevanteAdapter } from "./levante.js";
 import { OpenclawAdapter } from "./openclaw.js";
+import type { ParsedSkill } from "../core/skill.js";
+
+export type TargetScope = "global" | "project";
 
 export interface InstallSkillArgs {
   sourceDir: string;
   skillName: string;
   installPath: string;
+  skill: ParsedSkill;
+  installedAt: string;
 }
 
 export interface InstallSkillResult {
@@ -28,7 +33,8 @@ export interface InstalledSkillSummary {
 export interface TargetAdapter {
   readonly name: string;
   detect(): Promise<boolean>;
-  getDefaultInstallPath(scope?: "user" | "project"): string;
+  supportedScopes(): TargetScope[];
+  getDefaultInstallPath(scope?: TargetScope): string;
   installSkill(args: InstallSkillArgs): Promise<InstallSkillResult>;
   removeSkill(args: RemoveSkillArgs): Promise<void>;
   listInstalledSkills(installPath: string): Promise<InstalledSkillSummary[]>;

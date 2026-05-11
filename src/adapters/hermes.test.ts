@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { HermesAdapter } from "./hermes.js";
+import { parseSkill } from "../core/skill.js";
 
 describe("HermesAdapter.installSkill", () => {
   let work: string;
@@ -27,13 +28,30 @@ describe("HermesAdapter.installSkill", () => {
     const src = path.join(work, "src");
     const installPath = path.join(work, "install");
     await fs.mkdir(src);
-    await fs.writeFile(path.join(src, "SKILL.md"), "body", "utf8");
+    await fs.writeFile(
+      path.join(src, "SKILL.md"),
+      `---
+name: foo
+version: 0.1.0
+description: Hermes adapter test skill.
+tags: []
+targets:
+  - hermes
+---
+
+# Foo
+`,
+      "utf8"
+    );
+    const skill = await parseSkill(src);
 
     const adapter = new HermesAdapter();
     const { destPath } = await adapter.installSkill({
       sourceDir: src,
       skillName: "foo",
-      installPath
+      installPath,
+      skill,
+      installedAt: "2026-05-12T00:00:00.000Z"
     });
 
     expect(destPath).toBe(path.join(installPath, "foo"));
@@ -46,13 +64,30 @@ describe("HermesAdapter.installSkill", () => {
     const src = path.join(work, "src");
     const installPath = path.join(work, "install");
     await fs.mkdir(src);
-    await fs.writeFile(path.join(src, "SKILL.md"), "body", "utf8");
+    await fs.writeFile(
+      path.join(src, "SKILL.md"),
+      `---
+name: foo
+version: 0.1.0
+description: Hermes adapter test skill.
+tags: []
+targets:
+  - hermes
+---
+
+# Foo
+`,
+      "utf8"
+    );
+    const skill = await parseSkill(src);
 
     const adapter = new HermesAdapter();
     const { destPath } = await adapter.installSkill({
       sourceDir: src,
       skillName: "foo",
-      installPath
+      installPath,
+      skill,
+      installedAt: "2026-05-12T00:00:00.000Z"
     });
     expect(await fs.stat(destPath).then((s) => s.isDirectory())).toBe(true);
 
