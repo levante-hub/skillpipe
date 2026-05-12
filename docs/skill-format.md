@@ -4,6 +4,10 @@ A **skill** is a folder under `skills/<name>/` in your skills repository. The
 folder must contain a `SKILL.md` with YAML frontmatter and a Markdown body. Other
 files in the folder (templates, examples, helper docs) are copied along with it.
 
+For the repository-level structure that contains these skill folders
+(`skillpipe.json`, top-level directories, CI workflow), see
+[Repository layout](./repository-layout.md).
+
 ## Folder layout
 
 ```text

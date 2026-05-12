@@ -60,6 +60,10 @@ Or, if you want a fresh one with the standard layout (`skills/`, `agents/`,
 skillpipe repo create my-agent-skills --private
 ```
 
+Prefer to build the repo by hand? See [Repository layout](./repository-layout.md)
+for the required files, the `skillpipe.json` reference, and a copy-pasteable
+bootstrap.
+
 The connected repo is cloned into `<workspace>/.skillpipe/repos/<name>` — that local checkout
 is the source the CLI reads from.
 

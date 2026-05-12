@@ -13,6 +13,7 @@ This documentation is organized by what you're trying to do:
 | [For agents](./agents.md) | You want to understand why Skillpipe is built for AI agents and how an agent consumes a skill. |
 | [Commands reference](./commands.md) | You need the full list of commands and flags. |
 | [Skill format](./skill-format.md) | You're writing a new skill or auditing an existing one. |
+| [Repository layout](./repository-layout.md) | You want to build a Skillpipe-compatible repo by hand instead of using `skillpipe repo create`. |
 | [Targets & adapters](./targets.md) | You want to install skills into something other than Claude Code, or customize install paths. |
 | [Security model](./security.md) | You're reviewing the validation pipeline, secret scanning, or the PR-only contribution flow. |
 | [Contributing](./contributing.md) | You want to contribute code, tests, or docs to Skillpipe itself. |

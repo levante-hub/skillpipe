@@ -30,6 +30,7 @@ Full documentation lives under [`docs/`](./docs/README.md):
 - [For agents](./docs/agents.md) — why Skillpipe is built for AI agents and how they consume skills.
 - [Commands reference](./docs/commands.md) — every command, every flag.
 - [Skill format](./docs/skill-format.md) — `SKILL.md` frontmatter and body.
+- [Repository layout](./docs/repository-layout.md) — structure a skills repo by hand (`skillpipe.json` + `skills/`).
 - [Targets & adapters](./docs/targets.md) — Claude Code, custom paths, future adapters.
 - [Security model](./docs/security.md) — validation, secrets, PR-only flow.
 - [Contributing](./docs/contributing.md) — project setup, code style, PR flow.
